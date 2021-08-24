@@ -1,14 +1,13 @@
 # OJLite API拟定稿（版本1）
 
-**API调用格式：`/api.php?api={api_id}&...`**
+**API调用格式：`/api/{api_name}.php?{data}`**
 
-*API1*:获取用户信息
+*userdata.php*:获取用户信息
 
 输入：
 
 ```javascript
-type:检索的关键字，可为'uid'或'uname'
-data:关键字的值
+uid:用户id
 ```
 
 输出：
@@ -20,20 +19,19 @@ uid:用户编号
 uname:用户昵称
 priv:权限(0:封禁，1：普通用户，2：管理员，3：超级管理员)
 rank:用户贡献值
-saying:用户留言
+saying:用户个性签名
 email:用户邮件地址
 ```
 
 
 
-*API2*:用户密码验证
+*login.php*:用户密码验证
 
 输入：
 
 ```javascript
-type:验证的关键字，可为'uid'或'uname'
-data:关键字的值
-passwd:密码
+name:用户名
+password:密码
 ```
 
 输出：
@@ -41,18 +39,15 @@ passwd:密码
 ```javascript
 [JSON]用户信息(status,uid,uname,salt)
 status:{200：OK}，{404：用户不存在}，{503：密码错误}
-salt：用户验证代码({uid:用户uid，passwd:用户密码})
+salt：用户验证代码({id:用户uid，name:用户密码，key:验证密匙})
 ```
 
-
-
-*API3*:获取题目信息
+*problem.php*:获取题目信息
 
 输入：
 
 ```javascript
-type:检索的关键字，可为'pid'或'pname'
-data:关键字的值
+pid:题目id
 ```
 
 输出：
@@ -70,25 +65,42 @@ testcount:测试点数
 
 
 
-*API4*:获取题目统计信息
+*problemdata.php*:获取题目统计信息
 
 输入：
 
 ```javascript
-pid:关键字的值
+pid:题目id
 ```
 
 输出：
 
 ```javascript
-[JSON]题目统计信息(status,count,fastest_id,shortest_id,[JSON_ARRAY]([JSON]单条提交记录(rid,uid,score,size,time,memory,code)))
+[JSON]题目统计信息(status,count,fastest_id,shortest_id)
 status:{200：OK}，{404：题目不存在}
 count:提交记录条数
 fastest_id:最快编号
 shortest_id:最短编号
+```
+
+
+
+*jugde.php*:获取评测信息
+
+输入：
+
+```javascript
+rid:评测id
+```
+
+输出：
+
+```javascript
+[JSON]单条提交记录(rid,uid,score,pid,size,time,memory,code)
 rid：评测编号
 uid：提交用户编号
 score：评测分数
+pid：提交题目编号
 time：评测耗时
 memory：评测内存消耗
 code：提交的代码
@@ -96,16 +108,16 @@ code：提交的代码
 
 
 
-*API5*:提交代码以评测
+*review.php*:提交代码以评测
 
 输入：
 
 ```php+HTML
-salt：用户验证代码({uid:用户uid，passwd:用户密码})
+salt：用户验证代码
 pid:题目编号
 code：提交的代码
 lang:程序语言
-optimization:优化等级
+optimization:优化等级(空/O2)
 ```
 
 输出：
@@ -115,17 +127,17 @@ optimization:优化等级
 status:{200：OK}，{404：题目不存在}，{503：用户验证错误}，{504：贡献值不足}
 rank:用户贡献值
 if status == 200:
-	rid:评测编号
+rid:评测编号
 ```
 
 
 
-API6:拉取服务器代码以在本地评测
+*push.php*:拉取服务器代码以在本地评测
 
 输入：
 
 ```php+HTML
-salt：用户验证代码({uid:用户uid，passwd:用户密码})
+salt：用户验证代码
 ```
 
 输出：
@@ -144,12 +156,12 @@ out_file:答案数据
 
 
 
-API7:向服务器提交本地评测结果
+*judgedata.php*:向服务器提交本地评测结果
 
 输入：
 
 ```php+HTML
-salt:用户验证代码({uid:用户uid，passwd:用户密码})
+salt:用户验证代码
 rid：评测编号
 score:成绩
 code:提交的代码
@@ -168,14 +180,13 @@ rank:用户贡献值
 
 
 
-*API8*:用户注册
+*registered.php*:用户注册
 
 输入：
 
 ```javascript
 uname:用户昵称
 passwd:密码
-saying:用户留言
 email:用户邮件地址
 ```
 
@@ -189,12 +200,12 @@ uid:注册的用户编号
 
 
 
-*API9*:用户管理（仅管理员）
+*adminuser.php*:用户管理（仅管理员）
 
 输入：
 
 ```javascript
-salt:用户验证代码({uid:用户uid，passwd:用户密码})
+salt:用户验证代码
 uid:用户编号
 modify:[JSON_ARRAY]要修改的信息
 ```
@@ -208,12 +219,12 @@ status:{200：OK}，{503：权限不足},{404:用户不存在}
 
 
 
-*API10*:题目上传
+*adminproblem.cpp*:题目上传
 
 输入：
 
 ```javascript
-salt:用户验证代码({uid:用户uid，passwd:用户密码})
+salt:用户验证代码
 pname:题目名称
 detail:题目描述
 t_limit：时间限制
