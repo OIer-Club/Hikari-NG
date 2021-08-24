@@ -1,4 +1,6 @@
-# OJLite API拟定稿（版本1）
+# OJLite API拟定稿（版本1.1）
+
+by jyb666 & Fedoraer
 
 **API调用格式：`/api/{api_name}.php?{data}`**
 
