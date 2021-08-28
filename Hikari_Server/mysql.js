@@ -5,7 +5,7 @@ var user = 'Hikari';
 var password = '??????';
 var database = 'Hikari';
 
-var connection = mysql.createConnection({
+var con = mysql.createConnection({
   host     : host,
   user     : user,
   password : password,
