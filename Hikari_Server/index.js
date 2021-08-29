@@ -17,6 +17,22 @@ var connectionList = {};
  * @param {Function} callback 
  */
 
+/* 数据表user
+CREATE TABLE `user` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(20) COLLATE utf8_unicode_ci NOT NULL,
+  `password` varchar(50) COLLATE utf8_unicode_ci NOT NULL,
+  `Email` varchar(200) COLLATE utf8_unicode_ci NOT NULL,
+  `luoguUID` int(11) NOT NULL DEFAULT '1',
+  `tag` varchar(200) COLLATE utf8_unicode_ci NOT NULL,
+  `grade` int(11) NOT NULL DEFAULT '1',
+  `message` int(11) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `id` (`id`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=MyISAM AUTO_INCREMENT=262 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+*/
+
 function userdata(uname,passwd) { /* 返回数据JSON */
   mysql.con.connect();
   data = JSON.parse('{"code":"error","result":"用户不存在"}');
