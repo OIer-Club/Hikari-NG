@@ -1,5 +1,5 @@
 # 安装前请解包node_modules.zip!
-# OJLite
+# Hikari-NG
 New distributed online judge
 
 # Current Progress
