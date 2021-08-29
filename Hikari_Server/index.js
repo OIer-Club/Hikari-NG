@@ -33,7 +33,7 @@ CREATE TABLE `user` (
 ) ENGINE=MyISAM AUTO_INCREMENT=262 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 */
 
-function userdata(uname,passwd) { /* 返回数据JSON */
+function userdata(uname,passwd) { /* 返回数据JSON 数据见上 */
   mysql.con.connect();
   data = JSON.parse('{"code":"error","result":"用户不存在"}');
   var sql = 'SELECT * FROM `user`';
