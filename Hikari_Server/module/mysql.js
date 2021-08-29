@@ -11,3 +11,7 @@ var con = mysql.createConnection({
   password : password,
   database : database
 });
+
+module.exports = {
+  con
+};

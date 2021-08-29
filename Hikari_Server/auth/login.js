@@ -1,7 +1,7 @@
 /* 数据库 */
-var mysql = require('../module/mysql');
+var mysql = require("../module/mysql");
 /* md5加密 */
-var md5 = require('md5-node');
+var md5 = require("md5-node");
 
 /* 数据表user
 CREATE TABLE `user` (
@@ -19,22 +19,23 @@ CREATE TABLE `user` (
 ) ENGINE=MyISAM AUTO_INCREMENT=262 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 */
 
-function userdata(uname,passwd,callback) { /* 返回数据JSON 数据见上 */
+function validate_userdata_mysql(uname, passwd, callback) {
+  /* 返回数据JSON 数据见上 */
   mysql.con.connect();
   data = JSON.parse('{"code":"error","result":"用户不存在"}');
-  var sql = 'SELECT * FROM `user`';
-  connection.query(sql,function (err, result) {
-    if(err){
-      data = JSON.parse('{"code":"error","result":"'+err.message+'"}');
+  var sql = "SELECT * FROM `user`";
+  mysql.con.query(sql, function (err, result) {
+    if (err) {
+      data = JSON.parse('{"code":"error","result":"' + err.message + '"}');
       return data;
     }
-    result=JSON.stringify(result);
+
     var len = result.length;
     passwd = md5(md5(md5(passwd)));
-    for(var i = 0; i < len; i++) {
-      if(result[i]['name']==uname) {
-        if(result[i]['password']==passwd) {
-          data = JSON.parse('{"code":"ok"}');
+    for (var i = 0; i < len; i++) {
+      if (result[i]["name"] == uname) {
+        if (result[i]["password"] == passwd) {
+          data["code"] = "success";
           data["result"] = result[i];
           break;
         } else {
@@ -42,7 +43,12 @@ function userdata(uname,passwd,callback) { /* 返回数据JSON 数据见上 */
         }
       }
     }
+
+    mysql.con.end();
+    callback(data);
   });
-  mysql.con.end();
-  callback(data);
 }
+
+module.exports = {
+  validate_userdata_mysql,
+};
