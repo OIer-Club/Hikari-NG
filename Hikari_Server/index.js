@@ -1,6 +1,6 @@
 const server = require('http').createServer();
 const io = require('socket.io')(server);
-const login = require('./auth/login');
+var login = require('./auth/login');
 
 //socket连接列表
 var connectionList = {};
