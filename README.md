@@ -1,4 +1,4 @@
-$\color{red}{安装前请解包node_modules.zip!}$
+# 安装前请解包node_modules.zip!
 # OJLite
 New distributed online judge
 
