@@ -1,7 +1,7 @@
 /* 数据库 */
 var mysql = require('../module/mysql');
 /* md5加密 */
-var md5 = require('../module/md5');
+var md5 = require('md5-node');
 
 /* 数据表user
 CREATE TABLE `user` (
@@ -30,7 +30,7 @@ function userdata(uname,passwd,callback) { /* 返回数据JSON 数据见上 */
     }
     result=JSON.stringify(result);
     var len = result.length;
-    passwd = md5.hex_md5(md5.hex_md5(md5.hex_md5(passwd)))
+    passwd = md5(md5(md5(passwd)));
     for(var i = 0; i < len; i++) {
       if(result[i]['name']==uname) {
         if(result[i]['password']==passwd) {
