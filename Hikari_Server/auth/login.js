@@ -1,5 +1,6 @@
 /* 数据库 */
-var mysql = require("../module/mysql");
+var dbcfg = require("../module/dbconfig");
+var mysql = require('mysql');
 /* md5加密 */
 var md5 = require("md5-node");
 
@@ -21,10 +22,17 @@ CREATE TABLE `user` (
 
 function validate_userdata_mysql(uname, passwd, callback) {
   /* 返回数据JSON 数据见上 */
-  mysql.con.connect();
+  var con = mysql.createConnection({
+    host     : dbcfg.host,
+    user     : dbcfg.user,
+    password : dbcfg.password,
+    database : dbcfg.database
+  });
+
+  con.connect();
   data = JSON.parse('{"code":"error","result":"用户不存在"}');
   var sql = "SELECT * FROM `user`";
-  mysql.con.query(sql, function (err, result) {
+  con.query(sql, function (err, result) {
     if (err) {
       data = JSON.parse('{"code":"error","result":"' + err.message + '"}');
       return data;
@@ -44,7 +52,7 @@ function validate_userdata_mysql(uname, passwd, callback) {
       }
     }
 
-    mysql.con.end();
+    con.end();
     callback(data);
   });
 }
