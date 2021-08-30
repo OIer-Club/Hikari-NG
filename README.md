@@ -8,10 +8,13 @@ npm install
 ```
 
 # Current Progress
-[API Preview](https://github.com/OIer-Club/OJLite/blob/main/Docs/OLite_API_1.md)
+2021-8-30
+-Finished Judge System
+-SQL Interface Required
+
 # Milestones
-- [ ] User Account Management System
-- [ ] Distributed Judge System
+- [x] User Account Management System
+- [x] Distributed Judge System (Partly)
 - [ ] Distributed Blog System
 - [ ] Distributed Ranking System
 - More...
