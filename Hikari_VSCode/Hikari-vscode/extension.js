@@ -1,14 +1,15 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 //OJ配置，请自行修改
-var oj_url = "http://1.116.217.97"; // OJ的网址
+var oj_url = "http://127.0.0.1"; // OJ的网址
 var uname, passwd;
 
-const vscode = require("vscode");
-const fs = require("fs");
-const child_process = require("child_process");
+const judge = require("./judge").do_judge;
 const io = require("socket.io-client");
 const socket = io(oj_url + ":1919");
+const vscode = require("vscode");
+const fs = require("fs");
+//const child_process = require("child_process");
 const user_file = __dirname + "/user.json";
 
 /**
@@ -51,15 +52,18 @@ function validate_user(callback) {
       password: passwd,
     });
 
-    socket.on("LOGIN_SUCCESS", function (data) {
-      if (data.uname == uname) {
+    var done_val = 0;
+    socket.once("LOGIN_SUCCESS", function (data) {
+      if (data.uname == uname && done_val == 0) {
+        done_val = 1;
         vscode.window.setStatusBarMessage("你好，" + uname);
         callback(data.uid, data.token);
       }
     });
 
-    socket.on("LOGIN_FAILED", function (data) {
-      if (data.uname == uname) {
+    socket.once("LOGIN_FAILED", function (data) {
+      if (data.uname == uname && done_val == 0) {
+        done_val = 1;
         console.error("user validation failed!");
         vscode.window.showErrorMessage("User Validation Failed!");
       }
@@ -69,6 +73,26 @@ function validate_user(callback) {
     vscode.window.showErrorMessage("Please Login First!");
   }
 }
+
+//已弃用。
+/* function start_judger(){
+  console.log("Starting Judger...");
+  var workerProcess = child_process.exec(
+    "node " + __dirname + "/judge.js",
+    function (error, stdout, stderr) {
+      if (error) {
+        console.log(error.stack);
+        console.log(stderr + "Error code: " + error.code);
+        console.log("Signal received: " + error.signal);
+      }
+      console.log(stdout);
+    }
+  );
+
+  workerProcess.on("exit", function (code) {
+    console.log("Judger Exited with Code :" + code);
+  });
+} */
 
 /**
  * @param {vscode.ExtensionContext} context
@@ -80,31 +104,21 @@ function activate(context) {
       __dirname +
       "!"
   );
-  var workerProcess = child_process.exec(
-    "node " + __dirname + "/judge.js",
-    function (error, stdout, stderr) {
-      if (error) {
-        console.log(error.stack);
-        console.log("Error code: " + error.code);
-        console.log("Signal received: " + error.signal);
-      }
-      console.log("stdout: " + stdout);
-      console.log("stderr: " + stderr);
-    }
-  );
-
-  workerProcess.on("exit", function (code) {
-    console.log("Judger Exited with Code :" + code);
-  });
+  
+  //开启评测进程
+  //start_judger();
 
   let func_submit = vscode.commands.registerCommand(
     "hikari-vscode.submit",
     function () {
       validate_user(function (uid, salt) {
         console.log("login success! uid: " + uid + " salt: " + salt);
-        vscode.window.showInformationMessage(
-          vscode.window.activeTextEditor.document.getText()
-        );
+
+        socket.emit("submit", {
+          uid: uid,
+          pid: 1001,
+          code: vscode.window.activeTextEditor.document.getText(),
+        });
       });
     }
   );
@@ -127,6 +141,27 @@ function activate(context) {
 
   context.subscriptions.push(func_submit);
   context.subscriptions.push(func_login);
+
+  //评测循环
+  socket.on("judge_pull",function(data){
+    //console.log(data.rid,data.grp,data.code,data.input,data.output);
+    judge(
+      data.code,
+      data.input,
+      data.output,
+      function(status,stdout){
+          console.log("评测完毕！结果：" + status + " 输出：" + stdout);
+          socket.emit("judge_push_result",{
+            rid : data.rid,
+            pid : data.pid,
+            grp : data.grp,
+            status : status,
+            pts : (status == "AC" ? 10 : 0),
+            out : stdout
+          });
+      }
+    );
+  });
 }
 
 function deactivate() {}
