@@ -67,8 +67,12 @@
 		"vscode-test": "^1.5.2"
 	},
 	"dependencies": {
+		"child_process": "^1.0.2",
+		"fs": "0.0.1-security",
 		"http": "0.0.1-security",
 		"request": "^2.88.2",
-		"socket.io-client": "^4.1.3"
+		"socket.io-client": "^4.1.3",
+		"string-random": "^0.1.3",
+		"vscode": "^1.1.37"
 	}
 }

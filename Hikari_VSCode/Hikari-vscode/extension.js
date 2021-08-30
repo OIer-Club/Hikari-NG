@@ -1,11 +1,12 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 //OJ配置，请自行修改
-var oj_url = "http://127.0.0.1"; // OJ的网址
+var oj_url = "http://1.116.217.97"; // OJ的网址
 var uname, passwd;
 
 const vscode = require("vscode");
 const fs = require("fs");
+const child_process = require("child_process");
 const io = require("socket.io-client");
 const socket = io(oj_url + ":1919");
 const user_file = __dirname + "/user.json";
@@ -79,6 +80,22 @@ function activate(context) {
       __dirname +
       "!"
   );
+  var workerProcess = child_process.exec(
+    "node " + __dirname + "/judge.js",
+    function (error, stdout, stderr) {
+      if (error) {
+        console.log(error.stack);
+        console.log("Error code: " + error.code);
+        console.log("Signal received: " + error.signal);
+      }
+      console.log("stdout: " + stdout);
+      console.log("stderr: " + stderr);
+    }
+  );
+
+  workerProcess.on("exit", function (code) {
+    console.log("Judger Exited with Code :" + code);
+  });
 
   let func_submit = vscode.commands.registerCommand(
     "hikari-vscode.submit",
