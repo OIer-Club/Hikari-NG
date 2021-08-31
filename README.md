@@ -2,10 +2,13 @@
 New distributed online judge
 
 # Install
-```
-cd Hikari-vscode
-npm install
-```
+1.Server
+  - Create a database following the instructions in ``Hikari-Server/module/ojconfig.js``
+  - ``cd Hikari-Server & npm install``
+
+2.Client
+  - Check OJ_URL in ``Hikari-vscode/extension.js``
+  - run vscode
 
 # Current Progress
 2021-8-30
