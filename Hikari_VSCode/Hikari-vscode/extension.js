@@ -104,7 +104,7 @@ function activate(context) {
       __dirname +
       "!"
   );
-  
+
   //开启评测进程
   //start_judger();
 
@@ -114,11 +114,19 @@ function activate(context) {
       validate_user(function (uid, salt) {
         console.log("login success! uid: " + uid + " salt: " + salt);
 
-        socket.emit("submit", {
-          uid: uid,
-          pid: 1001,
-          code: vscode.window.activeTextEditor.document.getText(),
-        });
+        vscode.window
+          .showInputBox({
+            ignoreFocusOut: true,
+            placeHolder: "题目编号", // 在输入框内的提示信息
+            prompt: "输入待评测的题目编号", // 在输入框下方的提示信息
+          })
+          .then(function (msg) {
+            socket.emit("submit", {
+              uid: uid,
+              pid: msg,
+              code: vscode.window.activeTextEditor.document.getText(),
+            });
+          });
       });
     }
   );
@@ -143,24 +151,19 @@ function activate(context) {
   context.subscriptions.push(func_login);
 
   //评测循环
-  socket.on("judge_pull",function(data){
+  socket.on("judge_pull", function (data) {
     //console.log(data.rid,data.grp,data.code,data.input,data.output);
-    judge(
-      data.code,
-      data.input,
-      data.output,
-      function(status,stdout){
-          console.log("评测完毕！结果：" + status + " 输出：" + stdout);
-          socket.emit("judge_push_result",{
-            rid : data.rid,
-            pid : data.pid,
-            grp : data.grp,
-            status : status,
-            pts : (status == "AC" ? 10 : 0),
-            out : stdout
-          });
-      }
-    );
+    judge(data.code, data.input, data.output, function (status, stdout) {
+      console.log("评测完毕！结果：" + status + " 输出：" + stdout);
+      socket.emit("judge_push_result", {
+        rid: data.rid,
+        pid: data.pid,
+        grp: data.grp,
+        status: status,
+        pts: status == "AC" ? 10 : 0,
+        out: stdout,
+      });
+    });
   });
 }
 
