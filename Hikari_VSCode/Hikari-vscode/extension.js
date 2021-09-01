@@ -152,7 +152,7 @@ function activate(context) {
 
   //评测循环
   socket.on("judge_pull", function (data) {
-    //console.log(data.rid,data.grp,data.code,data.input,data.output);
+    console.log("Input:" + data.input + ",Output:" + data.output);
     judge(data.code, data.input, data.output, function (status, stdout) {
       console.log("评测完毕！结果：" + status + " 输出：" + stdout);
       socket.emit("judge_push_result", {
