@@ -1,6 +1,4 @@
-# Hikari-NG
-New distributed online judge
-
+![Cover](http://1.116.217.97/Hikari_Cover_small.png)
 # Install
 1.Server
   - Create a database following the instructions in ``Hikari-Server/module/ojconfig.js``
