@@ -41,12 +41,13 @@ function validate_userdata_mysql(uname, passwd, callback) {
     var len = result.length;
     passwd = md5(md5(md5(passwd)));
     for (var i = 0; i < len; i++) {
-      if (result[i]["name"] == uname) {
+      if (result[i]["name"].toLowerCase() == uname.toLowerCase()) {
         if (result[i]["password"] == passwd) {
           data["code"] = "success";
           data["result"] = result[i];
           break;
         } else {
+          console.log(result[i]["password"] + ',' + passwd);
           data = JSON.parse('{"code":"error","result":"密码错误"}');
         }
       }
