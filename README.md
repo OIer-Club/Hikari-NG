@@ -7,6 +7,7 @@
 2.Client
   - Check OJ_URL in ``Hikari-vscode/extension.js``
   - run vscode
+# 普通用户：将``Hikari-Vscode.zip``解压放置在``%USERPROFILE%\.vscode\extensions``文件夹下
 
 # Current Progress
 2021-8-30
