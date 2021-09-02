@@ -10,13 +10,12 @@
 # 普通用户：将``Hikari-Vscode.zip``解压放置在``%USERPROFILE%\.vscode\extensions``文件夹下
 
 # Current Progress
-2021-8-30
--Finished Judge System
--SQL Interface Required
+2021-9-2
+- Finished Judge System
 
 # Milestones
 - [x] User Account Management System
-- [x] Distributed Judge System (Partly)
+- [x] Distributed Judge System
 - [ ] Distributed Blog System
 - [ ] Distributed Ranking System
 - More...
