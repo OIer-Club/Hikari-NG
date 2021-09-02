@@ -2,7 +2,9 @@
 // Import the module and reference it with the alias vscode in your code below
 //OJ配置，请自行修改
 var oj_url = "http://1.116.217.97"; // OJ的网址
-var uname, passwd, uid = -1;
+var uname,
+  passwd,
+  uid = -1;
 var pid_map = {};
 
 const judge = require("./judge").do_judge;
@@ -123,12 +125,16 @@ function activate(context) {
             prompt: "输入待评测的题目编号", // 在输入框下方的提示信息
           })
           .then(function (msg) {
-            pid_map[msg] = true;
-            socket.emit("submit", {
-              uid: uid,
-              pid: msg,
-              code: vscode.window.activeTextEditor.document.getText(),
-            });
+            if (!pid_map[msg]) {
+              pid_map[msg] = true;
+              socket.emit("submit", {
+                uid: uid,
+                pid: msg,
+                code: vscode.window.activeTextEditor.document.getText(),
+              });
+            } else {
+              vscode.window.showErrorMessage("正在评测中，请耐心等待...");
+            }
           });
       });
     }
@@ -170,13 +176,17 @@ function activate(context) {
     });
   });
 
-  socket.on("judge_all_done",function(data){
+  socket.on("judge_all_done", function (data) {
     //console.log("ALLDONE GET:" + data.uid + "," + data.pid);
-    if (data.uid == uid && pid_map[data.pid] == true){
-      if (data.stat == "Accepted"){
-        vscode.window.showInformationMessage("Problem " + data.pid + " Accepted,Score:" + data.pts);
-      }else{
-        vscode.window.showErrorMessage("Problem " + data.pid + " Unaccepted,Score:" + data.pts);
+    if (data.uid == uid && pid_map[data.pid] == true) {
+      if (data.stat == "Accepted") {
+        vscode.window.showInformationMessage(
+          "Problem " + data.pid + " Accepted,Score:" + data.pts
+        );
+      } else {
+        vscode.window.showErrorMessage(
+          "Problem " + data.pid + " Unaccepted,Score:" + data.pts
+        );
       }
 
       pid_map[data.pid] = false;

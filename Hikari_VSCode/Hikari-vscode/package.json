@@ -48,7 +48,12 @@
 					"group": "navigation"
 				}
 			]
-		}
+		},
+		"keybindings": [{
+			"command": "hikari-vscode.submit",
+			"key": "ctrl+f11",
+			"when": "editorTextFocus"
+		}]
 	},
 	"scripts": {
 		"lint": "eslint .",
