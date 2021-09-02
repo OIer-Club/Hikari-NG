@@ -34,8 +34,7 @@ function validate_userdata_mysql(uname, passwd, callback) {
   var sql = "SELECT * FROM `user`";
   con.query(sql, function (err, result) {
     if (err) {
-      data = JSON.parse('{"code":"error","result":"' + err.message + '"}');
-      return data;
+      throw err;
     }
 
     var len = result.length;

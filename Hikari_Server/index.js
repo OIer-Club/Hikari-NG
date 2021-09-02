@@ -1,10 +1,15 @@
-const server = require("http").createServer();
+const server = require("http").createServer(function (request, response) {
+  response.writeHead(200, {'Content-Type': 'text/html'});
+  response.end('<h1>Hikari-Server Running...</h1>\n');
+});
+
 const io = require("socket.io")(server);
 const login = require("./auth/login");
 const md5 = require("md5-node");
 const Queue = require("./module/queue.js");
 var dbcfg = require("./module/dbconfig");
 var mysql = require("mysql");
+const { stat } = require("fs");
 //socket连接列表
 var connectionList = {};
 
@@ -64,6 +69,7 @@ function get_problem_data(pid, grp_id, callback) {
     //console.log("Len: " + len);
     result = JSON.parse(result[0]["data"]);
 
+    con.end();
     if (grp_id == -1) {
       callback(result.length);
     } else {
@@ -79,8 +85,22 @@ function get_problem_data(pid, grp_id, callback) {
  * (待完善）将评测记录保存至数据库
  * @param {integer} rid : 待保存的rid
  */
-function save_result_to_db(rid) {
-  console.log("To Save " + rid);
+function save_result_to_db(rid,pid,uid,stat,pts,detail) {
+  var con = mysql.createConnection({
+    host: dbcfg.host,
+    user: dbcfg.user,
+    password: dbcfg.password,
+    database: dbcfg.database,
+  });
+  con.connect();
+  var sql = "INSERT INTO `record` (rid,pid,uid,stat,pts,detail) VALUES (" + rid + "," + pid + "," + uid + ",'" + stat + "'," + pts + ",'" + detail + "')";
+
+  con.query(sql, function (err) {
+    if (err) {
+      return data;
+    }
+    con.end();
+  });
 }
 
 /*
@@ -120,6 +140,7 @@ io.sockets.on("connection", function (socket) {
     result_list[cur_rid] = new Object();
     result_list[data.rid].cnt = 0;
     result_list[data.rid].pts = 0;
+    //result_list[data.rid].pid = data.pid;
     result_list[cur_rid].grp_rec = {};
 
     Queue.push(data, function (uid, pid, code) {
@@ -131,6 +152,7 @@ io.sockets.on("connection", function (socket) {
               result_list[cur_rid].grp_rec[grp_id].exist = false;
               socket.emit("judge_pull", {
                 rid: cur_rid,
+                uid: uid,
                 pid: pid,
                 grp: grp_id,
                 code: code,
@@ -154,7 +176,15 @@ io.sockets.on("connection", function (socket) {
       result_list[data.rid].pts += data.pts;
       get_problem_data(data.pid, -1,function(datacnt){
         if (result_list[data.rid].cnt == datacnt) {
-          save_result_to_db(data.rid);
+          result_list[data.rid].stat = (result_list[data.rid].pts == datacnt?"Accepted" : "Unaccepted");
+          save_result_to_db(data.rid,data.pid,data.uid,result_list[data.rid].stat,result_list[data.rid].pts,JSON.stringify(result_list[data.rid].grp_rec));
+          socket.emit("judge_all_done",{
+            rid : data.rid,
+            uid : data.uid,
+            pid : data.pid,
+            pts : result_list[data.rid].pts,
+            stat : result_list[data.rid].stat
+          });
         }
       })
     }
