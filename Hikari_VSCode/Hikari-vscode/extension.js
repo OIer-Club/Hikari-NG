@@ -1,8 +1,9 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 //OJ配置，请自行修改
-var oj_url = "http://127.0.0.1"; // OJ的网址
-var uname, passwd;
+var oj_url = "http://1.116.217.97"; // OJ的网址
+var uname, passwd, uid = -1;
+var pid_map = {};
 
 const judge = require("./judge").do_judge;
 const io = require("socket.io-client");
@@ -56,6 +57,7 @@ function validate_user(callback) {
     socket.once("LOGIN_SUCCESS", function (data) {
       if (data.uname == uname && done_val == 0) {
         done_val = 1;
+        uid = data.uid;
         vscode.window.setStatusBarMessage("你好，" + uname);
         callback(data.uid, data.token);
       }
@@ -121,6 +123,7 @@ function activate(context) {
             prompt: "输入待评测的题目编号", // 在输入框下方的提示信息
           })
           .then(function (msg) {
+            pid_map[msg] = true;
             socket.emit("submit", {
               uid: uid,
               pid: msg,
@@ -157,13 +160,27 @@ function activate(context) {
       console.log("评测完毕！结果：" + status + " 输出：" + stdout);
       socket.emit("judge_push_result", {
         rid: data.rid,
+        uid: data.uid,
         pid: data.pid,
         grp: data.grp,
         status: status,
-        pts: status == "AC" ? 10 : 0,
+        pts: status == "AC" ? 1 : 0,
         out: stdout,
       });
     });
+  });
+
+  socket.on("judge_all_done",function(data){
+    //console.log("ALLDONE GET:" + data.uid + "," + data.pid);
+    if (data.uid == uid && pid_map[data.pid] == true){
+      if (data.stat == "Accepted"){
+        vscode.window.showInformationMessage("Problem " + data.pid + " Accepted,Score:" + data.pts);
+      }else{
+        vscode.window.showErrorMessage("Problem " + data.pid + " Unaccepted,Score:" + data.pts);
+      }
+
+      pid_map[data.pid] = false;
+    }
   });
 }
 
