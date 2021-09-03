@@ -85,7 +85,7 @@ function get_problem_data(pid, grp_id, callback) {
  * (待完善）将评测记录保存至数据库
  * @param {integer} rid : 待保存的rid
  */
-function save_result_to_db(rid,pid,uid,stat,pts,detail) {
+function save_result_to_db(rid,pid,uid,code,stat,pts,detail) {
   var con = mysql.createConnection({
     host: dbcfg.host,
     user: dbcfg.user,
@@ -93,7 +93,7 @@ function save_result_to_db(rid,pid,uid,stat,pts,detail) {
     database: dbcfg.database,
   });
   con.connect();
-  var sql = "INSERT INTO `record` (rid,pid,uid,stat,pts,detail) VALUES (" + rid + "," + pid + "," + uid + ",'" + stat + "'," + pts + ",'" + detail + "')";
+  var sql = "INSERT INTO `record` (rid,pid,uid,code,stat,pts,detail) VALUES (" + rid + "," + pid + "," + uid + ",'" + code +"','" + stat + "'," + pts + ",'" + detail + "')";
 
   con.query(sql, function (err) {
     if (err) {
@@ -140,6 +140,7 @@ io.sockets.on("connection", function (socket) {
     result_list[cur_rid] = new Object();
     result_list[data.rid].cnt = 0;
     result_list[data.rid].pts = 0;
+    result_list[data.rid].code = data.code;
     //result_list[data.rid].pid = data.pid;
     result_list[cur_rid].grp_rec = {};
 
@@ -176,13 +177,21 @@ io.sockets.on("connection", function (socket) {
       result_list[data.rid].pts += data.pts;
       get_problem_data(data.pid, -1,function(datacnt){
         if (result_list[data.rid].cnt == datacnt) {
-          result_list[data.rid].stat = (result_list[data.rid].pts == datacnt?"Accepted" : "Unaccepted");
-          save_result_to_db(data.rid,data.pid,data.uid,result_list[data.rid].stat,result_list[data.rid].pts,JSON.stringify(result_list[data.rid].grp_rec));
+          result_list[data.rid].stat = "AC";
+          for (i=1;i<=datacnt;i+=1){
+            if (result_list[data.rid].grp_rec[i].status != "AC"){
+              result_list[data.rid].stat = result_list[data.rid].grp_rec[i].status;
+              break;
+            }
+          }
+
+          save_result_to_db(data.rid,data.pid,data.uid,result_list[data.rid].code,result_list[data.rid].stat,result_list[data.rid].pts,JSON.stringify(result_list[data.rid].grp_rec));
           socket.emit("judge_all_done",{
             rid : data.rid,
             uid : data.uid,
             pid : data.pid,
             pts : result_list[data.rid].pts,
+            datacnt : datacnt,
             stat : result_list[data.rid].stat
           });
         }

@@ -36,13 +36,16 @@ CREATE TABLE `hikari`.`problem` ( `id` INT AUTO_INCREMENT NOT NULL ,
 */
 
 /*评测记录数据库record
-CREATE TABLE `hikari`.`record` ( `rid` BIGINT NOT NULL , 
+CREATE TABLE `hikari`.`record` ( 
+  `id` INT AUTO_INCREMENT NOT NULL ,
+  `rid` BIGINT NOT NULL , 
   `pid` INT NOT NULL ,
   `uid` INT NOT NULL , 
+  `code` LONGTEXT NOT NULL ,
   `stat` VARCHAR(30) NOT NULL ,
   `pts` INT NOT NULL , 
   `detail` LONGTEXT NOT NULL , 
-  PRIMARY KEY (`rid`)
+  PRIMARY KEY (`id`)
 ) ENGINE = InnoDB;
 */
 module.exports = {
