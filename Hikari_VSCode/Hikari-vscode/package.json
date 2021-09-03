@@ -3,7 +3,7 @@
 	"publisher":"Hikari-Dev",
 	"displayName": "hikari-VSCode",
 	"description": "hikari client for VSCode",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"icon": "icon.png",
 	"engines": {
 		"vscode": "^1.59.0"
@@ -12,7 +12,6 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:hikari-vscode.login",
 		"onCommand:hikari-vscode.submit"
 	],
 	"main": "./extension.js",
@@ -23,12 +22,12 @@
 			"properties": {
 				"hikari-vscode.uname": {
 					"type": "string",
-					"default": "user",
+					"default": "clearwave",
 					"description": "您的用户名"
 				},
 				"hikari-vscode.passwd": {
 					"type": "string",
-					"default": "password",
+					"default": "123456",
 					"description": "您的密码"
 				},
 				"hikari-vscode.oj_url": {
@@ -40,10 +39,6 @@
 		},
 		"commands": [
 			{
-				"command": "hikari-vscode.login",
-				"title": "登录到Hikari"
-			},
-			{
 				"command": "hikari-vscode.submit",
 				"title": "将代码提交至Hikari"
 			}
@@ -54,20 +49,11 @@
 					"when": "editorFocus",
 					"command": "hikari-vscode.submit",
 					"group": "navigation"
-				},
-				{
-					"when": "editorFocus",
-					"command": "hikari-vscode.login",
-					"group": "navigation"
 				}
 			],
 			"explorer/context": [
 				{
 					"command": "hikari-vscode.submit",
-					"group": "navigation"
-				},
-				{
-					"command": "hikari-vscode.login",
 					"group": "navigation"
 				}
 			]

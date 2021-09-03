@@ -3,6 +3,9 @@
 //OJ配置，请自行修改
 const vscode = require("vscode");
 var oj_url = vscode.workspace.getConfiguration().get("hikari-vscode.oj_url"); // OJ的网址
+var uname = vscode.workspace.getConfiguration().get("hikari-vscode.uname");
+var passwd = vscode.workspace.getConfiguration().get("hikari-vscode.passwd");
+
 console.log(oj_url);
 var uname,
   passwd,
@@ -12,92 +15,36 @@ var pid_map = {};
 const judge = require("./judge").do_judge;
 const io = require("socket.io-client");
 const socket = io(oj_url + ":1919");
-const fs = require("fs");
 //const child_process = require("child_process");
-const user_file = __dirname + "/user.json";
-
-/**
- *
- * @param {string} filePath
- */
-function openLocalFile(filePath) {
-  // 获取TextDocument对象
-  vscode.workspace
-    .openTextDocument(filePath)
-    .then(
-      (doc) => {
-        // 在VSCode编辑窗口展示读取到的文本
-        vscode.window.showTextDocument(doc);
-      },
-      (err) => {
-        console.log(`Open ${filePath} error, ${err}.`);
-      }
-    )
-    .then(undefined, (err) => {
-      console.log(`Open ${filePath} error, ${err}.`);
-    });
-}
 
 /**
  *
  * @param {function} callback
  */
 function validate_user(callback) {
-  try {
-    fs.accessSync(user_file, fs.constants.R_OK | fs.constants.W_OK);
-    var data = fs.readFileSync(user_file).toString();
-    JSON.parse(data, function (key, value) {
-      if (key == "uname") uname = value;
-      if (key == "passwd") passwd = value;
-    });
-
-    socket.emit("login", {
-      username: uname,
-      password: passwd,
-    });
-
-    var done_val = 0;
-    socket.once("LOGIN_SUCCESS", function (data) {
-      if (data.uname == uname && done_val == 0) {
-        done_val = 1;
-        uid = data.uid;
-        vscode.window.setStatusBarMessage("你好，" + uname);
-        callback(data.uid, data.token);
-      }
-    });
-
-    socket.once("LOGIN_FAILED", function (data) {
-      if (data.uname == uname && done_val == 0) {
-        done_val = 1;
-        console.error("user validation failed!");
-        vscode.window.showErrorMessage("User Validation Failed!");
-      }
-    });
-  } catch (err) {
-    console.error("user.json Not Found!");
-    vscode.window.showErrorMessage("Please Login First!");
-  }
-}
-
-//已弃用。
-/* function start_judger(){
-  console.log("Starting Judger...");
-  var workerProcess = child_process.exec(
-    "node " + __dirname + "/judge.js",
-    function (error, stdout, stderr) {
-      if (error) {
-        console.log(error.stack);
-        console.log(stderr + "Error code: " + error.code);
-        console.log("Signal received: " + error.signal);
-      }
-      console.log(stdout);
-    }
-  );
-
-  workerProcess.on("exit", function (code) {
-    console.log("Judger Exited with Code :" + code);
+  socket.emit("login", {
+    username: uname,
+    password: passwd,
   });
-} */
+
+  var done_val = 0;
+  socket.once("LOGIN_SUCCESS", function (data) {
+    if (data.uname == uname && done_val == 0) {
+      done_val = 1;
+      uid = data.uid;
+      vscode.window.setStatusBarMessage("你好，" + uname);
+      callback(data.uid, data.token);
+    }
+  });
+
+  socket.once("LOGIN_FAILED", function (data) {
+    if (data.uname == uname && done_val == 0) {
+      done_val = 1;
+      console.error("user validation failed!");
+      vscode.window.showErrorMessage("User Validation Failed!");
+    }
+  });
+}
 
 /**
  * @param {vscode.ExtensionContext} context
@@ -109,9 +56,6 @@ function activate(context) {
       __dirname +
       "!"
   );
-
-  //开启评测进程
-  //start_judger();
 
   let func_submit = vscode.commands.registerCommand(
     "hikari-vscode.submit",
@@ -143,24 +87,7 @@ function activate(context) {
     }
   );
 
-  let func_login = vscode.commands.registerCommand(
-    "hikari-vscode.login",
-    function () {
-      try {
-        fs.accessSync(user_file, fs.constants.R_OK | fs.constants.W_OK);
-      } catch (err) {
-        console.error("Creating user.json");
-        fs.writeFileSync(
-          user_file,
-          '{"uname":"Your Username Here","passwd":"Your Password Here"}'
-        );
-      }
-      openLocalFile(user_file);
-    }
-  );
-
   context.subscriptions.push(func_submit);
-  context.subscriptions.push(func_login);
 }
 
 //评测循环
