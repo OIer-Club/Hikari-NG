@@ -4,25 +4,21 @@ var execSync = require("child_process").execSync;
 const stringRandom = require("string-random");
 const fs = require("fs");
 
-var time_limit_per_pt = 1000;
-var time_limit_compile = 7000;
-
-/**
- *
- * @param {string} cmd ：命令
- * @param {Function} callback ：回调函数
- */
-function execute(cmd, callback) {
-  exec(cmd, function (error, stdout, stderr) {
-    if (error) {
-      console.error(error);
-      console.log(stdout, stderr);
-    } else {
-      console.log(cmd + " success");
-      callback(stdout);
-    }
-  });
+//洛谷:88
+function benchmark() {
+  var T_CCC = new Date();
+  var pai = 0,
+    flag = false;
+  for (var i = 1; i < 100000000; i += 2) {
+    pai += (((flag = !flag) ? 1 : -1) * 1) / i;
+  }
+  //console.log("圆周率π：" + pai * 4);
+  // @ts-ignore
+  return new Date() - T_CCC;
 }
+
+var time_limit_per_pt = Math.ceil(benchmark() / 88);
+var time_limit_compile = 20000;
 
 /**
  *
@@ -31,8 +27,9 @@ function execute(cmd, callback) {
  * @param {string} stdans ：答案
  * @param {Function} callback ：回调函数
  */
-function do_judge(code, stdin, stdans, callback) {
+function do_judge(code, stdin, stdans, time_limit,mem_limit,callback) {
   var r_d_id = stringRandom(16);
+  console.log("Time Limit is:" + time_limit_per_pt * time_limit + ", Mem Limit is:" + mem_limit);
   var working_directory = __dirname + "\\submissions\\" + r_d_id;
   var code_file = working_directory + "\\code" + r_d_id + ".cpp";
   var elf_file = working_directory + "\\code" + r_d_id + ".exe";
@@ -56,7 +53,7 @@ function do_judge(code, stdin, stdans, callback) {
           fs.writeFileSync(working_directory + "\\data.in", stdin);
           exec(
             judge_command,
-            { timeout: time_limit_per_pt },
+            { timeout: time_limit_per_pt * time_limit},
             function (error, _stdout, _stderr) {
               if (error) {
                 var ret = execSync("chcp 437 & taskkill /f /im " + "code" + r_d_id + ".exe");
@@ -112,4 +109,5 @@ do_judge(
 
 module.exports = {
   do_judge,
+  time_limit_per_pt
 };

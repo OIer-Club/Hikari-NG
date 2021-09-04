@@ -6,7 +6,7 @@ var oj_url = vscode.workspace.getConfiguration().get("hikari-vscode.oj_url"); //
 var uname = vscode.workspace.getConfiguration().get("hikari-vscode.uname");
 var passwd = vscode.workspace.getConfiguration().get("hikari-vscode.passwd");
 
-console.log(oj_url);
+console.log("OJ URL:" + oj_url);
 var uname,
   passwd,
   uid = -1;
@@ -14,9 +14,10 @@ var pid_map = {};
 
 const judge = require("./judge").do_judge;
 const io = require("socket.io-client");
+// @ts-ignore
 const socket = io(oj_url + ":1919");
 //const child_process = require("child_process");
-
+ 
 /**
  *
  * @param {function} callback
@@ -56,6 +57,7 @@ function activate(context) {
       __dirname +
       "!"
   );
+  console.log("Benchmark: " + require("./judge").time_limit_per_pt);
 
   let func_submit = vscode.commands.registerCommand(
     "hikari-vscode.submit",
@@ -93,7 +95,7 @@ function activate(context) {
 //评测循环
 socket.on("judge_pull", function (data) {
   console.log("Input:" + data.input + ",Output:" + data.output);
-  judge(data.code, data.input, data.output, function (status, stdout) {
+  judge(data.code, data.input, data.output, data.time_limit,data.mem_limit,function (status, stdout) {
     console.log("评测完毕！结果：" + status + " 输出：" + stdout);
     socket.emit("judge_push_result", {
       rid: data.rid,
@@ -112,11 +114,19 @@ socket.on("judge_all_done", function (data) {
   if (data.uid == uid && pid_map[data.pid] == true) {
     if (data.stat == "AC") {
       vscode.window.showInformationMessage(
-        "Problem " + data.pid + " Accepted,Score:" + data.pts + " Out of " + data.datacnt
+        "Problem " +
+          data.pid +
+          " Accepted,Score:" +
+          Math.floor(100*data.pts/data.datacnt)
       );
     } else {
       vscode.window.showErrorMessage(
-        "Problem " + data.pid + " Unaccepted, Status: " + data.stat + ", Score: " + data.pts + " Out of " + data.datacnt
+        "Problem " +
+          data.pid +
+          " Unaccepted, Status: " +
+          data.stat +
+          ", Score: " +
+          Math.floor(100*data.pts/data.datacnt)
       );
     }
 
