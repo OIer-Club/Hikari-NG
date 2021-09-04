@@ -142,7 +142,7 @@ function save_result_to_db(rid, pid, uid, code, stat, pts, detail) {
 
   con.query(sql, function (err) {
     if (err) {
-      return data;
+      console.error(err);
     }
     con.end();
   });
@@ -261,7 +261,7 @@ io.sockets.on("connection", function (socket) {
                   result_list[cur_rid].grp_rec[grp_id].valid_in = _valid.input;
                   result_list[cur_rid].grp_rec[grp_id].valid_out =
                     _valid.output;
-                  socket.emit("judge_pull", {
+                  io.emit("judge_pull", {
                     rid: cur_rid,
                     uid: uid,
                     pid: pid,
@@ -322,7 +322,7 @@ io.sockets.on("connection", function (socket) {
             if (result_list[data.rid].stat == "AC"){
               save_result_to_valid(data.rid, data.code, data.in, data.out);
             }
-            socket.emit("judge_all_done", {
+            io.emit("judge_all_done", {
               rid: data.rid,
               uid: data.uid,
               pid: data.pid,
