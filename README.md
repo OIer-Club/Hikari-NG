@@ -1,4 +1,11 @@
 ![Cover](http://1.116.217.97/Hikari_Cover_small.png)
+# Changelog
+### V0.1.3:
+- 添加自适应评测时间计算
+- 添加Validate Code防作弊系统
+
+感谢 @[swift-zym](https://github.com/swift-zym) 和 @[officeyutong](https://github.com/officeyutong) 提出的宝贵意见！
+
 # Installation
 
 ### 方法1：
