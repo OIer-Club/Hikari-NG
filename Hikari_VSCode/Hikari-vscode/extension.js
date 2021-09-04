@@ -12,7 +12,9 @@ var uname,
   uid = -1;
 var pid_map = {};
 
-const judge = require("./judge").do_judge;
+const do_judge = require("./judge").do_judge;
+const do_compile_out = require("./judge").do_compile_out;
+
 const io = require("socket.io-client");
 // @ts-ignore
 const socket = io(oj_url + ":1919");
@@ -94,17 +96,25 @@ function activate(context) {
 
 //评测循环
 socket.on("judge_pull", function (data) {
-  console.log("Input:" + data.input + ",Output:" + data.output);
-  judge(data.code, data.input, data.output, data.time_limit,data.mem_limit,function (status, stdout) {
-    console.log("评测完毕！结果：" + status + " 输出：" + stdout);
-    socket.emit("judge_push_result", {
-      rid: data.rid,
-      uid: data.uid,
-      pid: data.pid,
-      grp: data.grp,
-      status: status,
-      pts: status == "AC" ? 1 : 0,
-      out: stdout,
+  //console.log("Input:" + data.input + ",Output:" + data.output);
+  //console.log("VAlid:" + data.valid_code + "," + data.valid_in);
+
+  do_compile_out(data.valid_code,data.valid_in,false,0,0,function(_val_status,_val_out){
+    //console.log("Valid Out:" + _val_out);
+    do_judge(data.code, data.input, data.output, data.time_limit,data.mem_limit,function (status, stdout) {
+      console.log("评测完毕！结果：" + status + " 输出：" + stdout);
+      socket.emit("judge_push_result", {
+        rid: data.rid,
+        uid: data.uid,
+        pid: data.pid,
+        grp: data.grp,
+        code: data.code,
+        status: status,
+        pts: status == "AC" ? 1 : 0,
+        in : data.input,
+        out: stdout,
+        valid_out : _val_out
+      });
     });
   });
 });
