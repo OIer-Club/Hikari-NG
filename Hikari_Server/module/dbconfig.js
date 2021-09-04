@@ -20,19 +20,24 @@ CREATE TABLE `user` (
 */
 
 /*数据表problem
-CREATE TABLE `hikari`.`problem` ( `id` INT AUTO_INCREMENT NOT NULL , 
-  `title` VARCHAR(100) NOT NULL , 
-  `provider` INT NOT NULL , 
-  `time` TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL ,
-  `tag` VARCHAR(100) NOT NULL ,
-  `gescription` LONGTEXT NOT NULL ,
-  `input` LONGTEXT NOT NULL ,
-  `output` LONGTEXT NOT NULL , 
-  `sample` LONGTEXT NOT NULL ,
-  `hint` LONGTEXT NOT NULL ,
-  `data` LONGTEXT NOT NULL , 
+CREATE TABLE `problem` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `title` varchar(100) NOT NULL,
+  `provider` int(11) NOT NULL,
+  `time` timestamp NOT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `tag` varchar(100) NOT NULL,
+  `gescription` longtext NOT NULL,
+  `input` longtext NOT NULL,
+  `output` longtext NOT NULL,
+  `sample` longtext NOT NULL,
+  `hint` longtext NOT NULL,
+  `data` longtext NOT NULL,
+  `hidden` int(11) NOT NULL DEFAULT '0',
+  `time_limit` int(11) NOT NULL,
+  `mem_limit` int(11) NOT NULL,
+  `type` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE = InnoDB
+) ENGINE=InnoDB AUTO_INCREMENT=1000 DEFAULT CHARSET=utf8
 */
 
 /*评测记录数据库record
