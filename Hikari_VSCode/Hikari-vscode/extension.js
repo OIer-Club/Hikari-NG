@@ -44,7 +44,10 @@ function validate_user(callback) {
     if (data.uname == uname && done_val == 0) {
       done_val = 1;
       console.error("user validation failed!");
-      vscode.window.showErrorMessage("User Validation Failed!");
+      vscode.window.showErrorMessage("用户验证失败，请检查用户名和密码!","没有帐户？去注册").then(function(select){
+        if (select == "没有帐户？去注册")
+          vscode.env.openExternal(vscode.Uri.parse(oj_url + "/auth/register.php"));
+      });
     }
   });
 }
@@ -82,8 +85,13 @@ function activate(context) {
                   pid: msg,
                   code: vscode.window.activeTextEditor.document.getText(),
                 });
+                vscode.window.setStatusBarMessage("评测已提交！");
               } else {
-                vscode.window.showErrorMessage("正在评测中，请耐心等待...");
+                vscode.window.showErrorMessage("正在评测中，请耐心等待...","重置评测列表").then(function(select){
+                  if (select == "重置评测列表"){
+                    pid_map = {};
+                  }
+                });
               }
             }
           });
@@ -100,7 +108,7 @@ socket.on("judge_pull", function (data) {
   //console.log("VAlid:" + data.valid_code + "," + data.valid_in);
 
   do_compile_out(data.valid_code,data.valid_in,false,0,0,function(_val_status,_val_out){
-    //console.log("Valid Out:" + _val_out);
+    console.log("Valid Out:" + _val_out);
     do_judge(data.code, data.input, data.output, data.time_limit,data.mem_limit,function (status, stdout) {
       console.log("评测完毕！结果：" + status + " 输出：" + stdout);
       socket.emit("judge_push_result", {
@@ -119,25 +127,59 @@ socket.on("judge_pull", function (data) {
   });
 });
 
+socket.on("judge_pts_done",function(data){
+  if (data.uid == uid && pid_map[data.pid] == true && data.cnt_done != data.datacnt) {
+    if (data.stat == "AC"){
+      vscode.window.setStatusBarMessage("题目 " +
+      data.pid +
+      " 第 " + data.grp + "个数据已评测(共" + data.datacnt + "个),状态：" + data.stat + "，共评测完成 " + data.cnt_done + "个数据。" );
+    }else{
+      vscode.window.setStatusBarMessage(
+        "题目 " +
+          data.pid +
+          " 第 " + data.grp + "个数据已评测(共" + data.datacnt + "个),状态：" + data.stat + "，共评测完成 " + data.cnt_done + "个数据。" 
+      );
+    }
+  }
+});
+
 socket.on("judge_all_done", function (data) {
-  //console.log("ALLDONE GET:" + data.uid + "," + data.pid);
+  console.log("ALLDONE GET:" + data.uid + "," + data.pid);
   if (data.uid == uid && pid_map[data.pid] == true) {
     if (data.stat == "AC") {
+      vscode.window.setStatusBarMessage("题目 " +
+      data.pid +
+      " 已通过,分数:" +
+      Math.floor(100*data.pts/data.datacnt)
+      );
       vscode.window.showInformationMessage(
-        "Problem " +
+        "题目 " +
           data.pid +
-          " Accepted,Score:" +
-          Math.floor(100*data.pts/data.datacnt)
-      );
+          " 已通过,分数:" +
+          Math.floor(100*data.pts/data.datacnt),"在浏览器查看"
+      ).then(function(select){
+        if (select == "在浏览器查看")
+          vscode.env.openExternal(vscode.Uri.parse(oj_url + "/record/list.php?pid=" + data.pid));
+      });
     } else {
+      vscode.window.setStatusBarMessage("题目 " +
+      data.pid +
+      " 未通过, 状态: " +
+      data.stat +
+      ", 分数: " +
+      Math.floor(100*data.pts/data.datacnt));
+
       vscode.window.showErrorMessage(
-        "Problem " +
+        "题目 " +
           data.pid +
-          " Unaccepted, Status: " +
+          " 未通过, 状态: " +
           data.stat +
-          ", Score: " +
-          Math.floor(100*data.pts/data.datacnt)
-      );
+          ", 分数: " +
+          Math.floor(100*data.pts/data.datacnt),"在浏览器查看"
+      ).then(function(select){
+        if (select == "在浏览器查看")
+          vscode.env.openExternal(vscode.Uri.parse(oj_url + "/record/list.php?pid=" + data.pid));
+      });
     }
 
     pid_map[data.pid] = false;

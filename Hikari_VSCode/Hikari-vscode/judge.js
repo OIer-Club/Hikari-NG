@@ -76,7 +76,7 @@ function do_compile_out(
         if (error) {
           console.error(error);
           console.log(_stdout, _stderr);
-          callback("CE", _stderr);
+          callback("CE",_stderr);
         } else {
           console.log("compiled with info: " + _stdout);
           fs.writeFileSync(working_directory + "\\data.in", stdin);
@@ -138,8 +138,7 @@ function do_judge(code, stdin, stdans, time_limit, mem_limit, callback) {
           callback("AC", stdout);
         } else {
           console.log("Wrong Answer.");
-          console.log("'" + stdans + "','" + stdout + "'");
-          callback("WA", stdout);
+          callback("WA", "Stdout:'" + stdout.substr(0,100) + "',Stdans:'" + stdans.substr(0,100) + "'");
         }
       } else {
         callback(status, stdout);
