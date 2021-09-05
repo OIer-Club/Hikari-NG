@@ -14,6 +14,11 @@ var connectionList = {};
 
 var result_list = {};
 
+function stringToBase64(str){
+    var base64Str = new Buffer(str).toString('base64');
+    return base64Str;
+}
+
 /**
  * 验证用户信息时否正确。
  * @param {*} socket
@@ -25,14 +30,14 @@ var result_list = {};
 function validate_user(socket, token, uname, passwd, callback) {
   login.validate_userdata_mysql(uname, passwd, function (data) {
     if (data["code"] == "success") {
-      socket.emit("LOGIN_SUCCESS", {
+      io.emit("LOGIN_SUCCESS", {
         uid: data["result"]["id"],
         uname: uname,
         token: token,
       });
       callback(data["result"]["id"], uname, passwd);
     } else {
-      socket.emit("LOGIN_FAILED", {
+      io.emit("LOGIN_FAILED", {
         uid: -1,
         uname: uname,
         token: token,
@@ -137,7 +142,7 @@ function save_result_to_db(rid, pid, uid, code, stat, pts, detail) {
     "'," +
     pts +
     ",'" +
-    detail +
+    stringToBase64(detail) +
     "')";
 
   con.query(sql, function (err) {
@@ -191,17 +196,17 @@ function generate_validate_code(callback) {
     database: dbcfg.database,
   });
   con.connect();
-  var sql = "SELECT * FROM `reliable_judge`";
+  var sql = "SELECT * FROM  reliable_judge WHERE id >= ((SELECT MAX(id) FROM reliable_judge)-(SELECT" + 
+  "      MIN(id) FROM reliable_judge)) * RAND() + (SELECT MIN(id) FROM reliable_judge) LIMIT 1";
 
   con.query(sql, function (err, result) {
     if (err) {
       return data;
     }
     con.end();
-
-    var ccid = Math.floor(Math.random() * result.length);
+    
     callback({
-      code: result[ccid]["code"],
+      code: result[0]["code"],
       input: result[0]["input"],
       output: result[0]["output"],
     });
@@ -259,8 +264,7 @@ io.sockets.on("connection", function (socket) {
                   result_list[cur_rid].grp_rec[grp_id].exist = false;
                   result_list[cur_rid].grp_rec[grp_id].valid_code = _valid.code;
                   result_list[cur_rid].grp_rec[grp_id].valid_in = _valid.input;
-                  result_list[cur_rid].grp_rec[grp_id].valid_out =
-                    _valid.output;
+                  result_list[cur_rid].grp_rec[grp_id].valid_out = _valid.output;
                   io.emit("judge_pull", {
                     rid: cur_rid,
                     uid: uid,
@@ -286,14 +290,27 @@ io.sockets.on("connection", function (socket) {
   socket.on("judge_push_result", function (data) {
     if (result_list[data.rid].grp_rec[data.grp].valid_out == data.valid_out) {
       if (!result_list[data.rid].grp_rec[data.grp].exist) {
+        console.log("Result Get! RID:" + data.rid + ",data.grp:" + data.grp);
         result_list[data.rid].cnt += 1;
         result_list[data.rid].grp_rec[data.grp].exist = true;
         result_list[data.rid].grp_rec[data.grp].status = data.status;
         result_list[data.rid].grp_rec[data.grp].pts = data.pts;
         result_list[data.rid].grp_rec[data.grp].out = data.out;
         result_list[data.rid].pts += data.pts;
+
         get_problem_data(data.pid, -1, function (datacnt) {
+          io.emit("judge_pts_done", {
+            rid: data.rid,
+            uid: data.uid,
+            pid: data.pid,
+            grp: data.grp,
+            pts: data.pts,
+            cnt_done: result_list[data.rid].cnt,
+            datacnt : datacnt,
+            stat: data.status
+          });
           if (result_list[data.rid].cnt == datacnt) {
+            console.log("Judge All Done!" + data.rid);
             result_list[data.rid].stat = "AC";
             for (i = 1; i <= datacnt; i += 1) {
               if (result_list[data.rid].grp_rec[i].status != "AC") {
@@ -303,12 +320,13 @@ io.sockets.on("connection", function (socket) {
               }
             }
 
+            /*
             for (i = 1; i <= datacnt; i += 1){
               delete result_list[data.rid].grp_rec[i].exist;
               delete result_list[data.rid].grp_rec[i].valid_code;
               delete result_list[data.rid].grp_rec[i].valid_in;
               delete result_list[data.rid].grp_rec[i].valid_out;
-            }
+            }*/
 
             save_result_to_db(
               data.rid,
@@ -330,11 +348,14 @@ io.sockets.on("connection", function (socket) {
               datacnt: datacnt,
               stat: result_list[data.rid].stat,
             });
+          }else{
+            console.log("Judge " + data.rid + ": " + result_list[data.rid].cnt + " Out of " + datacnt);
           }
         });
       }
     } else {
-      console.log("User " + data.pid + "Seems to be a Scam...");
+      console.log(result_list[data.rid]);
+      console.log("User " + data.uid + " Seems to be a Scam...");
     }
   });
 

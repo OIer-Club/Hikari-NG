@@ -31,13 +31,18 @@ function validate_userdata_mysql(uname, passwd, callback) {
 
   con.connect();
   data = JSON.parse('{"code":"error","result":"用户不存在"}');
-  var sql = "SELECT * FROM `user`";
+  var sql = "SELECT * FROM `user` WHERE `name` in('" + uname + "')";
   con.query(sql, function (err, result) {
     if (err) {
       throw err;
     }
 
     var len = result.length;
+    if (len == 0){
+      con.end();
+      callback(data);
+    }else console.log("Len:" + len);
+
     passwd = md5(md5(md5(passwd)));
     for (var i = 0; i < len; i++) {
       if (result[i]["name"].toLowerCase() == uname.toLowerCase()) {

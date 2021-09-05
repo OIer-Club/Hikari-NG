@@ -53,6 +53,18 @@ CREATE TABLE `hikari`.`record` (
   PRIMARY KEY (`id`)
 ) ENGINE = InnoDB;
 */
+
+/*评测验证数据库reliable_judge
+CREATE TABLE `hikari`.`reliable_judge` (
+	`id` INT NOT NULL AUTO_INCREMENT,
+   `rid` BIGINT(20) NOT NULL, 
+	`code` LONGTEXT NOT NULL,
+	`input` LONGTEXT NOT NULL,
+	`output` LONGTEXT NOT NULL,
+	PRIMARY KEY (`id`),
+	UNIQUE (`rid`)
+) ENGINE = InnoDB;
+*/
 module.exports = {
   host,user,password,database
 };
