@@ -2,6 +2,7 @@
 
 # Introduction
 
+欢迎访问我们的网站[Hikari](http://1.116.217.97/)
 ### Q：什么是Hikari-NG？
 A：Hikari-NG是一款分布式的OJ，用户和题目信息等存放在云端，而评测等则在用户本地进行。
 ![](https://i.loli.net/2021/08/29/kIu1i37tbSsFL5Y.png)
@@ -63,7 +64,7 @@ A：Hikari-NG是一款分布式的OJ，用户和题目信息等存放在云端�
 - [x] Time Limit Evaluation System
 - [x] Anti-Cheating System
 - [ ] Blog System
-- [ ] Distributed Ranking System
+- [ ] Ranking System
 
 ### Milestone3(In Future)
 - [ ] Sandbox based on MIPS regulation
