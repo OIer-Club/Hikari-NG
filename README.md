@@ -1,7 +1,7 @@
 ![Cover](http://1.116.217.97/Hikari_Cover_small.png)
 
 # Introduction
-
+# 警告：当前版本为预览版，尚未部署Sandbox，请勿在生产环境下使用。建议在Windows Sandbox或Sandboxie中运行。
 ## 欢迎访问我们的网站[Hikari](http://1.116.217.97/)
 ### Q：什么是Hikari-NG？
 A：Hikari-NG是一款分布式的OJ，用户和题目信息等存放在云端，而评测等则在用户本地进行。
