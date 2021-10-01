@@ -71,19 +71,25 @@ function get_problem_data(pid, grp_id, callback) {
 
     //var len = result.length;
     //console.log("Len: " + len);
-    result = JSON.parse(result[0]["data"]);
-
-    con.end();
-    if (grp_id == -1) {
-      callback(result.length);
-    } else {
-      callback(
-        {
-          input: result[grp_id - 1].in,
-          output: result[grp_id - 1].out,
-        },
-        grp_id
-      );
+    if (result.length == 0){
+        callback(-1);
+    }else if (result[0]["hidden"] != 0){
+        callback(-1);
+    }else{
+        result = JSON.parse(result[0]["data"]);
+    
+        con.end();
+        if (grp_id == -1) {
+          callback(result.length);
+        } else {
+          callback(
+            {
+              input: result[grp_id - 1].in,
+              output: result[grp_id - 1].out,
+            },
+            grp_id
+          );
+        }
     }
   });
 }
@@ -242,6 +248,18 @@ io.sockets.on("connection", function (socket) {
 
   //用户提交评测
   socket.on("submit", function (data) {
+    get_problem_data(data.pid, -1, function (tot_grp){
+        if (tot_grp == -1){
+            io.emit("judge_all_done", {
+              uid: data.uid,
+              pid: data.pid,
+              pts: 0,
+              datacnt: 1,
+              stat: "Problem NOT FOUND",
+            });
+        }
+    });
+    
     var cur_rid = Date.now();
     data.rid = cur_rid;
 
@@ -252,7 +270,7 @@ io.sockets.on("connection", function (socket) {
     result_list[data.rid].code = data.code;
     //result_list[data.rid].pid = data.pid;
     result_list[cur_rid].grp_rec = {};
-
+    
     Queue.push(data, function (uid, pid, code) {
       if (connectionList[socketId].uid == uid) {
         get_problem_data(pid, -1, function (tot_grp) {
@@ -346,7 +364,7 @@ io.sockets.on("connection", function (socket) {
               pid: data.pid,
               pts: result_list[data.rid].pts,
               datacnt: datacnt,
-              stat: result_list[data.rid].stat,
+              stat: result_list[data.rid].stat
             });
           }else{
             console.log("Judge " + data.rid + ": " + result_list[data.rid].cnt + " Out of " + datacnt);
