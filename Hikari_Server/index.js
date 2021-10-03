@@ -1,6 +1,7 @@
+var cntInQueue = 0;
 const server = require("http").createServer(function (request, response) {
-  response.writeHead(200, { "Content-Type": "text/html" });
-  response.end("<h1>Hikari-Server Running...</h1>\n");
+  response.writeHead(200, { "Content-Type": "text/json" });
+  response.end('{"status":"200","online":"' + io.engine.clientsCount + '","inqueue":"' + cntInQueue + '}\n');
 });
 
 const io = require("socket.io")(server);
@@ -163,31 +164,33 @@ function save_result_to_db(rid, pid, uid, code, stat, pts, detail) {
  * 将评测记录保存至Valid库
  * @param {integer} rid : 待保存的rid
  */
-function save_result_to_valid(rid, code, input, output) {
-  var con = mysql.createConnection({
-    host: dbcfg.host,
-    user: dbcfg.user,
-    password: dbcfg.password,
-    database: dbcfg.database,
-  });
-  con.connect();
-  var sql =
-    "INSERT INTO `reliable_judge` (rid,code,input,output) VALUES (" +
-    rid +
-    ",'" +
-    code +
-    "','" +
-    input +
-    "','" +
-    output +
-    "')";
-
-  con.query(sql, function (err) {
-    if (err) {
-      console.error(err);
-    }
-    con.end();
-  });
+function save_result_to_valid(rid, code, pid, grp) {
+  get_problem_data(pid,grp,function(data,grp_id){
+      var con = mysql.createConnection({
+        host: dbcfg.host,
+        user: dbcfg.user,
+        password: dbcfg.password,
+        database: dbcfg.database,
+      });
+      con.connect();
+      var sql =
+        "INSERT INTO `reliable_judge` (rid,code,input,output) VALUES (" +
+        rid +
+        ",'" +
+        code +
+        "','" +
+        data.input +
+        "','" +
+        data.output +
+        "')";
+    
+      con.query(sql, function (err) {
+        if (err) {
+          console.error(err);
+        }
+        con.end();
+      });
+      });
 }
 
 /**
@@ -273,6 +276,7 @@ io.sockets.on("connection", function (socket) {
     
     Queue.push(data, function (uid, pid, code) {
       if (connectionList[socketId].uid == uid) {
+        cntInQueue += 1;
         get_problem_data(pid, -1, function (tot_grp) {
           for (i = 1; i <= tot_grp; i++) {
             get_problem_data(pid, i, function (c_data, grp_id) {
@@ -283,19 +287,59 @@ io.sockets.on("connection", function (socket) {
                   result_list[cur_rid].grp_rec[grp_id].valid_code = _valid.code;
                   result_list[cur_rid].grp_rec[grp_id].valid_in = _valid.input;
                   result_list[cur_rid].grp_rec[grp_id].valid_out = _valid.output;
-                  io.emit("judge_pull", {
-                    rid: cur_rid,
-                    uid: uid,
-                    pid: pid,
-                    grp: grp_id,
-                    code: code,
-                    input: c_data.input,
-                    output: c_data.output,
-                    time_limit: lim_data.time_limit,
-                    mem_limit: lim_data.mem_limit,
-                    valid_code: _valid.code,
-                    valid_in: _valid.input,
-                  });
+                  console.log("Pulled Test " + grp_id + " of RID " + cur_rid);
+                  console.log("Length of In: " + c_data.input.length + ", Output: " + c_data.output.length);
+                  if (c_data.input.length <= 5000000 && c_data.output.length <= 5000000){
+                      if (io.engine.clientsCount <= 1){
+                          io.emit("judge_pull", {
+                            rid: cur_rid,
+                            uid: uid,
+                            pid: pid,
+                            grp: grp_id,
+                            code: code,
+                            input: c_data.input,
+                            output: c_data.output,
+                            time_limit: lim_data.time_limit,
+                            mem_limit: lim_data.mem_limit,
+                            valid_code: _valid.code,
+                            valid_in: _valid.input,
+                          });
+                      }else{
+                          socket.broadcast.emit("judge_pull", {
+                            rid: cur_rid,
+                            uid: uid,
+                            pid: pid,
+                            grp: grp_id,
+                            code: code,
+                            input: c_data.input,
+                            output: c_data.output,
+                            time_limit: lim_data.time_limit,
+                            mem_limit: lim_data.mem_limit,
+                            valid_code: _valid.code,
+                            valid_in: _valid.input,
+                          });
+                      }
+                  }else{
+                    console.log("Data too large, Abort.");
+                    result_list[cur_rid].cnt += 1;
+                    result_list[cur_rid].grp_rec[grp_id].exist = true;
+                    result_list[cur_rid].grp_rec[grp_id].status = "AC";
+                    result_list[cur_rid].grp_rec[grp_id].pts = 1;
+                    result_list[cur_rid].grp_rec[grp_id].out = "(Aborted)";
+                    result_list[cur_rid].pts += 1;
+                    get_problem_data(pid, -1, function (datacnt) {
+                        io.emit("judge_pts_done", {
+                            rid: cur_rid,
+                            uid: uid,
+                            pid: pid,
+                            grp: grp_id,
+                            pts: 1,
+                            cnt_done: result_list[cur_rid].cnt,
+                            datacnt : datacnt,
+                            stat: "Aborted"
+                        });
+                    });
+                  }
                 });
               });
             });
@@ -329,6 +373,7 @@ io.sockets.on("connection", function (socket) {
           });
           if (result_list[data.rid].cnt == datacnt) {
             console.log("Judge All Done!" + data.rid);
+            cntInQueue -=1;
             result_list[data.rid].stat = "AC";
             for (i = 1; i <= datacnt; i += 1) {
               if (result_list[data.rid].grp_rec[i].status != "AC") {
@@ -356,7 +401,9 @@ io.sockets.on("connection", function (socket) {
               JSON.stringify(result_list[data.rid].grp_rec)
             );
             if (result_list[data.rid].stat == "AC"){
-              save_result_to_valid(data.rid, data.code, data.in, data.out);
+                get_problem_data(data.pid,-1,function(cnt_grp){
+                    save_result_to_valid(data.rid, data.code, data.pid, Math.floor(Math.random()*10)+1);
+                });
             }
             io.emit("judge_all_done", {
               rid: data.rid,
