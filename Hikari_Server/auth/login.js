@@ -41,7 +41,7 @@ function validate_userdata_mysql(uname, passwd, callback) {
     if (len == 0){
       con.end();
       callback(data);
-    }else console.log("Len:" + len);
+    }
 
     passwd = md5(md5(md5(passwd)));
     for (var i = 0; i < len; i++) {
