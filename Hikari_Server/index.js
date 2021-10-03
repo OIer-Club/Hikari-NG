@@ -1,7 +1,8 @@
 var cntInQueue = 0;
+var userLoggedin = 0;
 const server = require("http").createServer(function (request, response) {
   response.writeHead(200, { "Content-Type": "text/json" });
-  response.end('{"status":"200","online":"' + io.engine.clientsCount + '","inqueue":"' + cntInQueue + '}\n');
+  response.end('{"status":"200","online":"' + userLoggedin + '","inqueue":"' + cntInQueue + '"}\n');
 });
 
 const io = require("socket.io")(server);
@@ -241,6 +242,8 @@ io.sockets.on("connection", function (socket) {
       data.username,
       data.password,
       function (uid, uname, passwd) {
+        userLoggedin+=1;
+        connectionList[socketId].loggedin=true;
         connectionList[socketId].uid = uid;
         connectionList[socketId].username = uname;
         connectionList[socketId].password = passwd;
@@ -290,7 +293,7 @@ io.sockets.on("connection", function (socket) {
                   console.log("Pulled Test " + grp_id + " of RID " + cur_rid);
                   console.log("Length of In: " + c_data.input.length + ", Output: " + c_data.output.length);
                   if (c_data.input.length <= 5000000 && c_data.output.length <= 5000000){
-                      if (io.engine.clientsCount <= 1){
+                      if (userLoggedin <= 5){
                           io.emit("judge_pull", {
                             rid: cur_rid,
                             uid: uid,
@@ -426,7 +429,11 @@ io.sockets.on("connection", function (socket) {
 
   //用户离开
   socket.on("disconnect", function () {
-    console.log(connectionList[socketId].username + " logged out.");
+    if (connectionList[socketId].loggedin == true){
+        userLoggedin -= 1;
+        console.log(connectionList[socketId].username + " logged out.");
+    }
+    
     delete connectionList[socketId];
   });
 });
