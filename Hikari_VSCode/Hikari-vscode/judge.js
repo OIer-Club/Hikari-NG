@@ -4,6 +4,18 @@ var execSync = require("child_process").execSync;
 const stringRandom = require("string-random");
 const fs = require("fs");
 
+/**
+ * 寻找第一个不同字符
+ * @param {string} a 
+ * @param {string} b 
+ * @returns 
+ */
+function findFirstDiffPos(a, b) {
+  var i = 0;
+  if (a === b) return -1;
+  while (a[i] === b[i]) i++;
+  return i;
+}
 //洛谷:88
 function benchmark() {
   var T_CCC = new Date();
@@ -78,7 +90,6 @@ function do_compile_out(
           console.log(_stdout, _stderr);
           callback("CE",_stderr);
         } else {
-          console.log("compiled with info: " + _stdout);
           fs.writeFileSync(working_directory + "\\data.in", stdin);
           exec(judge_command, run_ctrl, function (error, _stdout, _stderr) {
             if (error) {
@@ -95,7 +106,6 @@ function do_compile_out(
               //console.error(error);
               console.log(_stdout, _stderr);
             } else {
-              console.log("judged with info:" + _stdout);
               var stdout = fs
                 .readFileSync(working_directory + "\\data.out")
                 .toString()
@@ -128,7 +138,7 @@ function do_judge(code, stdin, stdans, time_limit, mem_limit, callback) {
     mem_limit,
     function (status, stdout) {
       if (status == "OK") {
-        stdans = stdans
+        stdans = stdans.toString()
           .replace(/\s*/g, "")
           .replace(/[\r\n]/g, "")
           .replace(/[\n]/g, "");
@@ -138,7 +148,8 @@ function do_judge(code, stdin, stdans, time_limit, mem_limit, callback) {
           callback("AC", stdout);
         } else {
           console.log("Wrong Answer.");
-          callback("WA", "Stdout:'" + stdout.substr(0,100) + "',Stdans:'" + stdans.substr(0,100) + "'");
+          var dif_pls = findFirstDiffPos(stdout,stdans);
+          callback("WA", "Stdout:'" + stdout.substr(dif_pls,100) + "',Stdans:'" + stdans.substr(dif_pls,100) + "'");
         }
       } else {
         callback(status, stdout);

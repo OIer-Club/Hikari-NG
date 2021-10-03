@@ -19,7 +19,28 @@ const io = require("socket.io-client");
 // @ts-ignore
 const socket = io(oj_url + ":1919");
 //const child_process = require("child_process");
- 
+const fs = require('fs');
+
+/**
+ * 删除目录.
+ * @param {string} path 待删除的目录
+ */
+function delDir(path){
+  let files = [];
+  if(fs.existsSync(path)){
+      files = fs.readdirSync(path);
+      files.forEach((file, index) => {
+          let curPath = path + "/" + file;
+          if(fs.statSync(curPath).isDirectory()){
+              delDir(curPath); //递归删除文件夹
+          } else {
+              fs.unlinkSync(curPath); //删除文件
+          }
+      });
+      fs.rmdirSync(path);
+  }
+}
+
 /**
  *
  * @param {function} callback
@@ -62,6 +83,7 @@ function activate(context) {
       __dirname +
       "!"
   );
+
   console.log("Benchmark: " + require("./judge").time_limit_per_pt);
 
   let func_submit = vscode.commands.registerCommand(
@@ -104,11 +126,10 @@ function activate(context) {
 
 //评测循环
 socket.on("judge_pull", function (data) {
-  //console.log("Input:" + data.input + ",Output:" + data.output);
+  console.log("Group:" + data.grp + ",Length:Input:" + data.input.length + ",Output:" + data.output.length);
   //console.log("VAlid:" + data.valid_code + "," + data.valid_in);
 
   do_compile_out(data.valid_code,data.valid_in,false,0,0,function(_val_status,_val_out){
-    console.log("Valid Out:" + _val_out);
     do_judge(data.code, data.input, data.output, data.time_limit,data.mem_limit,function (status, stdout) {
       console.log("评测完毕！结果：" + status + " 输出：" + stdout);
       socket.emit("judge_push_result", {
@@ -119,7 +140,6 @@ socket.on("judge_pull", function (data) {
         code: data.code,
         status: status,
         pts: status == "AC" ? 1 : 0,
-        in : data.input,
         out: stdout,
         valid_out : _val_out
       });
@@ -186,7 +206,13 @@ socket.on("judge_all_done", function (data) {
   }
 });
 
-function deactivate() {}
+function deactivate() {
+  var cleanPath = __dirname + "\\submissions\\";
+  console.log("正在清除缓存，目录：" + cleanPath);
+  delDir(cleanPath);
+  fs.mkdirSync(cleanPath);
+  console.log("清理完成。");
+}
 
 module.exports = {
   activate,
