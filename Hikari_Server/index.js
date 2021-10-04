@@ -1,204 +1,30 @@
-var cntInQueue = 0;
-var userLoggedin = 0;
-const server = require("http").createServer(function (request, response) {
-  response.writeHead(200, { "Content-Type": "text/json" });
-  response.end('{"status":"200","online":"' + userLoggedin + '","inqueue":"' + cntInQueue + '"}\n');
-});
+/**
+ * Hikari-Server
+ * Powered by Clearwave of Hikari-Dev
+ * 
+ * Folder Sturcture:
+ * - module
+ *   - login.js : 登录验证相关
+ *   - ojconfig.js : 常量
+ *   - problem.js : 题目数据相关
+ *   - queue.js : 评测队列相关
+ *   - record.js : 评测记录相关
+ */
 
-const io = require("socket.io")(server);
-const login = require("./auth/login");
+var ojcfg = require("./module/ojconfig");
+var userLoggedin = ojcfg.userLoggedin;
+const server = ojcfg.server;
 
+const io = ojcfg.io;
+const login = require("./module/login.js");
 const Queue = require("./module/queue.js");
-var dbcfg = require("./module/dbconfig");
-var mysql = require("mysql");
+const problem = require("./module/problem");
+const record = require("./module/record");
+
 //socket连接列表
-var connectionList = {};
+var connectionList = ojcfg.connectionList;
+var result_list = ojcfg.result_list;
 
-var result_list = {};
-
-function stringToBase64(str){
-    var base64Str = new Buffer(str).toString('base64');
-    return base64Str;
-}
-
-/**
- * 验证用户信息时否正确。
- * @param {*} socket
- * @param {string} uname
- * @param {string} passwd
- * @param {Function} callback
- */
-
-function validate_user(socket, token, uname, passwd, callback) {
-  login.validate_userdata_mysql(uname, passwd, function (data) {
-    if (data["code"] == "success") {
-      io.emit("LOGIN_SUCCESS", {
-        uid: data["result"]["id"],
-        uname: uname,
-        token: token,
-      });
-      callback(data["result"]["id"], uname, passwd);
-    } else {
-      io.emit("LOGIN_FAILED", {
-        uid: -1,
-        uname: uname,
-        token: token,
-      });
-      console.log("valid Failed.");
-    }
-  });
-}
-
-/**
- * 获取一组数据
- * @param {integer} pid : 题目编号
- * @param {integer} grp_id : 第几组数据
- * @returns :该组数据的输入输出
- */
-
-function get_problem_data(pid, grp_id, callback) {
-  var con = mysql.createConnection({
-    host: dbcfg.host,
-    user: dbcfg.user,
-    password: dbcfg.password,
-    database: dbcfg.database,
-  });
-  con.connect();
-  var sql = "SELECT * FROM `problem` WHERE id in(" + con.escape(pid) + ")";
-
-  con.query(sql, function (err, result) {
-    if (err) {
-      return data;
-    }
-
-    //var len = result.length;
-    //console.log("Len: " + len);
-    if (result.length == 0){
-        callback(-1);
-    }else if (result[0]["hidden"] != 0){
-        callback(-1);
-    }else{
-        result = JSON.parse(result[0]["data"]);
-    
-        con.end();
-        if (grp_id == -1) {
-          callback(result.length);
-        } else {
-          callback(
-            {
-              input: result[grp_id - 1].in,
-              output: result[grp_id - 1].out,
-            },
-            grp_id
-          );
-        }
-    }
-  });
-}
-
-/**
- * 获取时空限制
- * @param {integer} pid : 题目编号
- * @returns :该组数据的输入输出
- */
-
-function get_problem_limits(pid, callback) {
-  var con = mysql.createConnection({
-    host: dbcfg.host,
-    user: dbcfg.user,
-    password: dbcfg.password,
-    database: dbcfg.database,
-  });
-  con.connect();
-  var sql = "SELECT * FROM `problem` WHERE id in(" + con.escape(pid) + ")";
-
-  con.query(sql, function (err, result) {
-    if (err) {
-      return data;
-    }
-    con.end();
-    callback({
-      time_limit: result[0]["time_limit"],
-      mem_limit: result[0]["mem_limit"],
-    });
-  });
-}
-
-/**
- * 将评测记录保存至数据库
- * @param {integer} rid : 待保存的rid
- */
-function save_result_to_db(rid, pid, uid, code, stat, pts, detail) {
-  var con = mysql.createConnection({
-    host: dbcfg.host,
-    user: dbcfg.user,
-    password: dbcfg.password,
-    database: dbcfg.database,
-  });
-  con.connect();
-  var sql = "INSERT INTO `record` (rid,pid,uid,code,stat,pts,detail) VALUES (?,?,?,?,?,?,?)";
-
-  con.query(sql, [rid,pid,uid,code,stat,pts,stringToBase64(detail)] , function (err) {
-    if (err) {
-      console.error(err);
-    }
-    con.end();
-  });
-}
-
-/**
- * 将评测记录保存至Valid库
- * @param {integer} rid : 待保存的rid
- */
-function save_result_to_valid(rid, code, pid, grp) {
-  get_problem_data(pid,grp,function(data,grp_id){
-      var con = mysql.createConnection({
-        host: dbcfg.host,
-        user: dbcfg.user,
-        password: dbcfg.password,
-        database: dbcfg.database,
-      });
-      con.connect();
-      var sql =
-        "INSERT INTO `reliable_judge` (rid,code,input,output) VALUES (?,?,?,?)";
-        
-      con.query(sql,[rid,code,data.input,data.output], function (err) {
-        if (err) {
-          console.error(err);
-        }
-        con.end();
-      });
-    });
-}
-
-/**
- * 生成验证代码和数据
- * @param {function} callback : 回调函数
- */
-function generate_validate_code(callback) {
-  var con = mysql.createConnection({
-    host: dbcfg.host,
-    user: dbcfg.user,
-    password: dbcfg.password,
-    database: dbcfg.database,
-  });
-  con.connect();
-  var sql = "SELECT * FROM  reliable_judge WHERE id >= ((SELECT MAX(id) FROM reliable_judge)-(SELECT" + 
-  "      MIN(id) FROM reliable_judge)) * RAND() + (SELECT MIN(id) FROM reliable_judge) LIMIT 1";
-
-  con.query(sql, function (err, result) {
-    if (err) {
-      return data;
-    }
-    con.end();
-    
-    callback({
-      code: result[0]["code"],
-      input: result[0]["input"],
-      output: result[0]["output"],
-    });
-  });
-}
 /*
  * socket主进程
  */
@@ -213,8 +39,7 @@ io.sockets.on("connection", function (socket) {
 
   //用户登录事件
   socket.on("login", function (data) {
-    validate_user(
-      socket,
+    login.validate_user(
       socketId,
       data.username,
       data.password,
@@ -231,7 +56,7 @@ io.sockets.on("connection", function (socket) {
 
   //用户提交评测
   socket.on("submit", function (data) {
-    get_problem_data(data.pid, -1, function (tot_grp){
+    problem.get_problem_data(data.pid, -1, function (tot_grp){
         if (tot_grp == -1){
             io.emit("judge_all_done", {
               uid: data.uid,
@@ -256,12 +81,12 @@ io.sockets.on("connection", function (socket) {
     
     Queue.push(data, function (uid, pid, code) {
       if (connectionList[socketId].uid == uid) {
-        cntInQueue += 1;
-        get_problem_data(pid, -1, function (tot_grp) {
+        ojcfg.cntInQueue += 1;
+        problem.get_problem_data(pid, -1, function (tot_grp) {
           for (i = 1; i <= tot_grp; i++) {
-            get_problem_data(pid, i, function (c_data, grp_id) {
-              get_problem_limits(pid, function (lim_data) {
-                generate_validate_code(function (_valid) {
+            problem.get_problem_data(pid, i, function (c_data, grp_id) {
+              problem.get_problem_limits(pid, function (lim_data) {
+                record.generate_validate_code(function (_valid) {
                   result_list[cur_rid].grp_rec[grp_id] = new Object();
                   result_list[cur_rid].grp_rec[grp_id].exist = false;
                   result_list[cur_rid].grp_rec[grp_id].valid_code = _valid.code;
@@ -307,7 +132,7 @@ io.sockets.on("connection", function (socket) {
                     result_list[cur_rid].grp_rec[grp_id].pts = 1;
                     result_list[cur_rid].grp_rec[grp_id].out = "(Aborted)";
                     result_list[cur_rid].pts += 1;
-                    get_problem_data(pid, -1, function (datacnt) {
+                    problem.get_problem_data(pid, -1, function (datacnt) {
                         io.emit("judge_pts_done", {
                             rid: cur_rid,
                             uid: uid,
@@ -340,7 +165,7 @@ io.sockets.on("connection", function (socket) {
         result_list[data.rid].grp_rec[data.grp].out = data.out;
         result_list[data.rid].pts += data.pts;
 
-        get_problem_data(data.pid, -1, function (datacnt) {
+        problem.get_problem_data(data.pid, -1, function (datacnt) {
           io.emit("judge_pts_done", {
             rid: data.rid,
             uid: data.uid,
@@ -353,7 +178,7 @@ io.sockets.on("connection", function (socket) {
           });
           if (result_list[data.rid].cnt == datacnt) {
             console.log("Judge All Done!" + data.rid);
-            cntInQueue -=1;
+            ojcfg.cntInQueue -=1;
             result_list[data.rid].stat = "AC";
             for (i = 1; i <= datacnt; i += 1) {
               if (result_list[data.rid].grp_rec[i].status != "AC") {
@@ -371,7 +196,7 @@ io.sockets.on("connection", function (socket) {
               delete result_list[data.rid].grp_rec[i].valid_out;
             }
 
-            save_result_to_db(
+            record.save_result_to_db(
               data.rid,
               data.pid,
               data.uid,
@@ -381,27 +206,22 @@ io.sockets.on("connection", function (socket) {
               JSON.stringify(result_list[data.rid].grp_rec)
             );
             if (result_list[data.rid].stat == "AC"){
-                get_problem_data(data.pid,-1,function(cnt_grp){
+                problem.get_problem_data(data.pid,-1,function(cnt_grp){
                     var grp_id = Math.floor(Math.random()*cnt_grp)+1,attempt = 0,OK = false;
                     
                     while (!OK && attempt <= 5){
                         attempt += 1;
                         var tmp_data = data;
-                        get_problem_data(data.pid,grp_id,function(data,grp_cnt){
+                        problem.get_problem_data(data.pid,grp_id,function(data,grp_cnt){
                             if (!OK){
                                 if (data.input.length <= 1000 && data.output.length <= 1000){
-                                    console.log("Pushed into VALID.");
-                                    save_result_to_valid(tmp_data.rid, tmp_data.code, tmp_data.pid, grp_id);
+                                    record.save_result_to_valid(tmp_data.rid, tmp_data.code, tmp_data.pid, grp_id);
                                     OK = true;
                                 }else{
                                     grp_id = Math.floor(Math.random()*cnt_grp)+1;
                                 }
                             }
                         });
-                    }
-                    
-                    if (!OK){
-                            console.log("Failed to push into VALID.");
                     }
                 });
             }
@@ -419,7 +239,7 @@ io.sockets.on("connection", function (socket) {
         });
       }
     } else {
-      console.log(result_list[data.rid]);
+      console.log(result_list[data.rid].grp_rec[data.grp]);
       console.log("User " + data.uid + " Seems to be a Scam...");
     }
   });
@@ -434,5 +254,10 @@ io.sockets.on("connection", function (socket) {
     delete connectionList[socketId];
   });
 });
+
 server.listen(1919);
 console.log("Server listening on port 1919.");
+
+module.exports = {
+  io,
+};
