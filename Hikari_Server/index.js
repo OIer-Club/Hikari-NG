@@ -161,7 +161,7 @@ function save_result_to_valid(rid, code, pid, grp) {
       con.connect();
       var sql =
         "INSERT INTO `reliable_judge` (rid,code,input,output) VALUES (?,?,?,?)";
-    
+        
       con.query(sql,[rid,code,data.input,data.output], function (err) {
         if (err) {
           console.error(err);
@@ -382,7 +382,27 @@ io.sockets.on("connection", function (socket) {
             );
             if (result_list[data.rid].stat == "AC"){
                 get_problem_data(data.pid,-1,function(cnt_grp){
-                    save_result_to_valid(data.rid, data.code, data.pid, Math.floor(Math.random()*10)+1);
+                    var grp_id = Math.floor(Math.random()*cnt_grp)+1,attempt = 0,OK = false;
+                    
+                    while (!OK && attempt <= 5){
+                        attempt += 1;
+                        var tmp_data = data;
+                        get_problem_data(data.pid,grp_id,function(data,grp_cnt){
+                            if (!OK){
+                                if (data.input.length <= 1000 && data.output.length <= 1000){
+                                    console.log("Pushed into VALID.");
+                                    save_result_to_valid(tmp_data.rid, tmp_data.code, tmp_data.pid, grp_id);
+                                    OK = true;
+                                }else{
+                                    grp_id = Math.floor(Math.random()*cnt_grp)+1;
+                                }
+                            }
+                        });
+                    }
+                    
+                    if (!OK){
+                            console.log("Failed to push into VALID.");
+                    }
                 });
             }
             io.emit("judge_all_done", {
