@@ -64,7 +64,7 @@ function get_problem_data(pid, grp_id, callback) {
     database: dbcfg.database,
   });
   con.connect();
-  var sql = "SELECT * FROM `problem` WHERE id in('" + pid + "')";
+  var sql = "SELECT * FROM `problem` WHERE id in(" + con.escape(pid) + ")";
 
   con.query(sql, function (err, result) {
     if (err) {
@@ -110,7 +110,7 @@ function get_problem_limits(pid, callback) {
     database: dbcfg.database,
   });
   con.connect();
-  var sql = "SELECT * FROM `problem` WHERE id in('" + pid + "')";
+  var sql = "SELECT * FROM `problem` WHERE id in(" + con.escape(pid) + ")";
 
   con.query(sql, function (err, result) {
     if (err) {
@@ -136,24 +136,9 @@ function save_result_to_db(rid, pid, uid, code, stat, pts, detail) {
     database: dbcfg.database,
   });
   con.connect();
-  var sql =
-    "INSERT INTO `record` (rid,pid,uid,code,stat,pts,detail) VALUES (" +
-    rid +
-    "," +
-    pid +
-    "," +
-    uid +
-    ",'" +
-    code +
-    "','" +
-    stat +
-    "'," +
-    pts +
-    ",'" +
-    stringToBase64(detail) +
-    "')";
+  var sql = "INSERT INTO `record` (rid,pid,uid,code,stat,pts,detail) VALUES (?,?,?,?,?,?,?)";
 
-  con.query(sql, function (err) {
+  con.query(sql, [rid,pid,uid,code,stat,pts,stringToBase64(detail)] , function (err) {
     if (err) {
       console.error(err);
     }
@@ -175,23 +160,15 @@ function save_result_to_valid(rid, code, pid, grp) {
       });
       con.connect();
       var sql =
-        "INSERT INTO `reliable_judge` (rid,code,input,output) VALUES (" +
-        rid +
-        ",'" +
-        code +
-        "','" +
-        data.input +
-        "','" +
-        data.output +
-        "')";
+        "INSERT INTO `reliable_judge` (rid,code,input,output) VALUES (?,?,?,?)";
     
-      con.query(sql, function (err) {
+      con.query(sql,[rid,code,data.input,data.output], function (err) {
         if (err) {
           console.error(err);
         }
         con.end();
       });
-      });
+    });
 }
 
 /**
@@ -386,13 +363,13 @@ io.sockets.on("connection", function (socket) {
               }
             }
 
-            /*
+            
             for (i = 1; i <= datacnt; i += 1){
               delete result_list[data.rid].grp_rec[i].exist;
               delete result_list[data.rid].grp_rec[i].valid_code;
               delete result_list[data.rid].grp_rec[i].valid_in;
               delete result_list[data.rid].grp_rec[i].valid_out;
-            }*/
+            }
 
             save_result_to_db(
               data.rid,
