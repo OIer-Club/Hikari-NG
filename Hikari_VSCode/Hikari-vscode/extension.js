@@ -20,6 +20,9 @@ const io = require("socket.io-client");
 const socket = io(oj_url + ":1919");
 //const child_process = require("child_process");
 const fs = require('fs');
+const request = require("sync-request");
+
+var Queue = require('./queue.js');
 
 /**
  * 删除目录.
@@ -29,6 +32,9 @@ function delDir(path){
   let files = [];
   if(fs.existsSync(path)){
       files = fs.readdirSync(path);
+      // @ts-ignore
+      // @ts-ignore
+      // @ts-ignore
       files.forEach((file, index) => {
           let curPath = path + "/" + file;
           if(fs.statSync(curPath).isDirectory()){
@@ -126,22 +132,41 @@ function activate(context) {
 
 //评测循环
 socket.on("judge_pull", function (data) {
-  console.log("Group:" + data.grp + ",Length:Input:" + data.input.length + ",Output:" + data.output.length);
-  //console.log("VAlid:" + data.valid_code + "," + data.valid_in);
+  Queue.push(data,function(data){
+    //console.log("Group:" + data.grp + ",Input:" + data.input + ",Output:" + data.output);
+    //console.log("VAlid:" + data.valid_code + "," + data.valid_in);
 
-  do_compile_out(data.valid_code,data.valid_in,false,0,0,function(_val_status,_val_out){
-    do_judge(data.code, data.input, data.output, data.time_limit,data.mem_limit,function (status, stdout) {
-      console.log("评测完毕！结果：" + status + " 输出：" + stdout);
-      socket.emit("judge_push_result", {
-        rid: data.rid,
-        uid: data.uid,
-        pid: data.pid,
-        grp: data.grp,
-        code: data.code,
-        status: status,
-        pts: status == "AC" ? 1 : 0,
-        out: stdout,
-        valid_out : _val_out
+    // @ts-ignore
+    data.valid_in = request('GET',data.valid_in).getBody();
+    // @ts-ignore
+    data.input = request('GET',data.input).getBody();
+    // @ts-ignore
+    data.output = request('GET',data.output).getBody();
+
+    
+    // @ts-ignore
+    console.log("开始评测: " + data.rid + " 测试点编号:" + data.grp + " 队列长度:" + Queue.length());
+    // @ts-ignore
+    do_compile_out(data.valid_code, data.valid_in, false, 0, 0, function (_val_status, _val_out) {
+      // @ts-ignore
+      do_judge(data.code, data.input, data.output, data.time_limit, data.mem_limit, function (status, stdout) {
+        console.log("评测完毕！结果：" + status + " 输出：" + stdout.substr(0, 100));
+        socket.emit("judge_push_result", {
+          // @ts-ignore
+          rid: data.rid,
+          // @ts-ignore
+          uid: data.uid,
+          // @ts-ignore
+          pid: data.pid,
+          // @ts-ignore
+          grp: data.grp,
+          // @ts-ignore
+          code: data.code,
+          status: status,
+          pts: status == "AC" ? 1 : 0,
+          out: stdout,
+          valid_out: _val_out
+        });
       });
     });
   });

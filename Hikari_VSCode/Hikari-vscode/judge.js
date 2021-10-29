@@ -41,7 +41,7 @@ var time_limit_compile = 20000;
  * @param {number} mem_limit 
  * @param {Function} callback 
  */
-function do_compile_out(
+var do_compile_out = function (
   code,
   stdin,
   use_time_limit,
@@ -75,6 +75,7 @@ function do_compile_out(
   var run_ctrl = {};
   if (use_time_limit) {
     run_ctrl = { timeout: time_limit_per_pt * time_limit };
+    //console.log(time_limit_per_pt + "," + time_limit);
   }
 
   fs.mkdir(working_directory, function (err) {
@@ -129,7 +130,8 @@ function do_compile_out(
  * @param {Function} callback ：回调函数
  */
 
-function do_judge(code, stdin, stdans, time_limit, mem_limit, callback) {
+var do_judge = function (code, stdin, stdans, time_limit, mem_limit, callback) {
+  //console.log("Time Limit: " + time_limit);
   do_compile_out(
     code,
     stdin,

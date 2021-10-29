@@ -1,9 +1,9 @@
 {
 	"name": "hikari-vscode",
-	"publisher":"Hikari-Dev",
+	"publisher": "Hikari-Dev",
 	"displayName": "hikari-VSCode",
 	"description": "hikari client for VSCode",
-	"version": "0.1.9",
+	"version": "0.2.0",
 	"icon": "icon.png",
 	"engines": {
 		"vscode": "^1.59.0"
@@ -32,8 +32,8 @@
 				},
 				"hikari-vscode.oj_url": {
 					"type": "string",
-					"default": "http://127.0.0.1",
-					"description": "OJ的网址"
+					"default": "http://1.116.217.97",
+					"description": "OJ的网址(勿动!)"
 				}
 			}
 		},
@@ -58,11 +58,13 @@
 				}
 			]
 		},
-		"keybindings": [{
-			"command": "hikari-vscode.submit",
-			"key": "ctrl+f11",
-			"when": "editorTextFocus"
-		}]
+		"keybindings": [
+			{
+				"command": "hikari-vscode.submit",
+				"key": "ctrl+f11",
+				"when": "editorTextFocus"
+			}
+		]
 	},
 	"scripts": {
 		"lint": "eslint .",
@@ -81,12 +83,14 @@
 		"vscode-test": "^1.5.2"
 	},
 	"dependencies": {
+		"async": "^3.2.2",
 		"child_process": "^1.0.2",
 		"fs": "0.0.1-security",
 		"http": "0.0.1-security",
 		"request": "^2.88.2",
 		"socket.io-client": "^4.1.3",
-		"string-random": "^0.1.3"
+		"string-random": "^0.1.3",
+		"sync-request": "^6.1.0"
 	},
 	"license": "MIT",
 	"bugs": {
