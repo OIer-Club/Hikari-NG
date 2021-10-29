@@ -1,6 +1,7 @@
 var ojcfg = require("./ojconfig");
 
 var mysql = require("mysql");
+var request = require('sync-request');
 
 function stringToBase64(str){
     var base64Str = new Buffer(str).toString('base64');
@@ -36,16 +37,18 @@ function get_problem_data(pid, grp_id, callback) {
     }else if (result[0]["hidden"] != 0){
         callback(-1);
     }else{
-        result = JSON.parse(result[0]["data"]);
+        
     
         con.end();
         if (grp_id == -1) {
-          callback(result.length);
+            a_size = JSON.parse(request('GET',ojcfg.choose_data_server() + "/?action=size&pid=" + pid).getBody());
+          callback(a_size.size);
         } else {
+            a_url = JSON.parse(request('GET', ojcfg.choose_data_server() + "/?action=allocate&pid=" + pid + "&grp=" + grp_id).getBody());
           callback(
             {
-              input: result[grp_id - 1].in,
-              output: result[grp_id - 1].out,
+              input: a_url.url_in,
+              output: a_url.url_out,
             },
             grp_id
           );

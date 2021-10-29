@@ -32,7 +32,7 @@ function validate_userdata_mysql(uname, passwd, callback) {
 
   con.connect();
   data = JSON.parse('{"code":"error","result":"用户不存在"}');
-  var sql = "SELECT * FROM `user` WHERE `name` in('" + uname + "')";
+  var sql = "SELECT * FROM `user` WHERE `name` in(" + con.escape(uname) + ")";
   con.query(sql, function (err, result) {
     if (err) {
       throw err;
