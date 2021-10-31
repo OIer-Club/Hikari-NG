@@ -11,11 +11,13 @@ var uname,
   passwd,
   uid = -1;
 var pid_map = {};
+var judge_inq = {};
 
 const do_judge = require("./judge").do_judge;
 const do_compile_out = require("./judge").do_compile_out;
 
 const io = require("socket.io-client");
+const os = require("os");
 // @ts-ignore
 const socket = io(oj_url + ":1919");
 //const child_process = require("child_process");
@@ -23,6 +25,7 @@ const fs = require('fs');
 const request = require("sync-request");
 
 var Queue = require('./queue.js');
+var md5 = require("md5");
 
 /**
  * 删除目录.
@@ -55,6 +58,8 @@ function validate_user(callback) {
   socket.emit("login", {
     username: uname,
     password: passwd,
+    info: '{"arch":"' + os.arch() + '","cpu_model":"' + os.cpus()[0].model + '","cpu_count":"' + os.cpus().length + 
+      '","speed":"' + os.cpus()[0].speed + '","mem":"' + Math.floor(os.freemem()/1024/1024) + '","os_type":"' + os.type() + '"}'
   });
 
   var done_val = 0;
@@ -132,44 +137,39 @@ function activate(context) {
 
 //评测循环
 socket.on("judge_pull", function (data) {
-  Queue.push(data,function(data){
-    //console.log("Group:" + data.grp + ",Input:" + data.input + ",Output:" + data.output);
-    //console.log("VAlid:" + data.valid_code + "," + data.valid_in);
+  if (judge_inq[data.rid + "&" + data.grp] != "InQ"){
+    judge_inq[data.rid + "&" + data.grp] = "InQ";
+    Queue.push(data,function(data){
+      //console.log("Group:" + data.grp + ",Input:" + data.input + ",Output:" + data.output);
+      //console.log("VAlid:" + data.valid_code + "," + data.valid_in);
 
-    // @ts-ignore
-    data.valid_in = request('GET',data.valid_in).getBody();
-    // @ts-ignore
-    data.input = request('GET',data.input).getBody();
-    // @ts-ignore
-    data.output = request('GET',data.output).getBody();
-
-    
-    // @ts-ignore
-    console.log("开始评测: " + data.rid + " 测试点编号:" + data.grp + " 队列长度:" + Queue.length());
-    // @ts-ignore
-    do_compile_out(data.valid_code, data.valid_in, false, 0, 0, function (_val_status, _val_out) {
       // @ts-ignore
-      do_judge(data.code, data.input, data.output, data.time_limit, data.mem_limit, function (status, stdout) {
-        console.log("评测完毕！结果：" + status + " 输出：" + stdout.substr(0, 100));
-        socket.emit("judge_push_result", {
-          // @ts-ignore
-          rid: data.rid,
-          // @ts-ignore
-          uid: data.uid,
-          // @ts-ignore
-          pid: data.pid,
-          // @ts-ignore
-          grp: data.grp,
-          // @ts-ignore
-          code: data.code,
-          status: status,
-          pts: status == "AC" ? 1 : 0,
-          out: stdout,
-          valid_out: _val_out
+      data.input = request('GET',data.input).getBody();
+
+      
+      // @ts-ignore
+      console.log("开始评测: " + data.rid + " 测试点编号:" + data.grp + " 队列长度:" + Queue.length());
+      // @ts-ignore
+        // @ts-ignore
+        do_compile_out(data.code, data.input,true, data.time_limit, data.mem_limit, function (status, stdout) {
+          console.log("评测完毕！结果：" + status + " 输出：" + stdout.substr(0, 100));
+          socket.emit("judge_push_result", {
+            // @ts-ignore
+            rid: data.rid,
+            // @ts-ignore
+            uid: data.uid,
+            // @ts-ignore
+            pid: data.pid,
+            // @ts-ignore
+            grp: data.grp,
+            // @ts-ignore
+            code: data.code,
+            status: status,
+            out: md5(stdout),
+          });
         });
-      });
     });
-  });
+  }
 });
 
 socket.on("judge_pts_done",function(data){

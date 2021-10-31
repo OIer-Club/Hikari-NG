@@ -3,7 +3,7 @@
 	"publisher": "Hikari-Dev",
 	"displayName": "hikari-VSCode",
 	"description": "hikari client for VSCode",
-	"version": "0.2.0",
+	"version": "0.2.3",
 	"icon": "icon.png",
 	"engines": {
 		"vscode": "^1.59.0"
@@ -87,6 +87,8 @@
 		"child_process": "^1.0.2",
 		"fs": "0.0.1-security",
 		"http": "0.0.1-security",
+		"md5": "^2.3.0",
+		"os": "^0.1.2",
 		"request": "^2.88.2",
 		"socket.io-client": "^4.1.3",
 		"string-random": "^0.1.3",

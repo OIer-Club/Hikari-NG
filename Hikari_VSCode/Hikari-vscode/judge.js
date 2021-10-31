@@ -122,44 +122,6 @@ var do_compile_out = function (
   });
 }
 
-/**
- *评测代码
- * @param {string} code :待评测代码
- * @param {string} stdin ：输入
- * @param {string} stdans ：答案
- * @param {Function} callback ：回调函数
- */
-
-var do_judge = function (code, stdin, stdans, time_limit, mem_limit, callback) {
-  //console.log("Time Limit: " + time_limit);
-  do_compile_out(
-    code,
-    stdin,
-    true,
-    time_limit,
-    mem_limit,
-    function (status, stdout) {
-      if (status == "OK") {
-        stdans = stdans.toString()
-          .replace(/\s*/g, "")
-          .replace(/[\r\n]/g, "")
-          .replace(/[\n]/g, "");
-
-        if (stdout == stdans) {
-          console.log("Accepted!");
-          callback("AC", stdout);
-        } else {
-          console.log("Wrong Answer.");
-          var dif_pls = findFirstDiffPos(stdout,stdans);
-          callback("WA", "Stdout:'" + stdout.substr(dif_pls,100) + "',Stdans:'" + stdans.substr(dif_pls,100) + "'");
-        }
-      } else {
-        callback(status, stdout);
-      }
-    }
-  );
-}
-
 /*
 do_judge(
   "#include<bits/stdc++.h>\nusing namespace std;\nint main(){int a,b;cin>>a>>b;cout<<a+b<<endl;return 0;}",
@@ -172,7 +134,6 @@ do_judge(
 */
 
 module.exports = {
-  do_judge,
   do_compile_out,
   time_limit_per_pt,
 };
