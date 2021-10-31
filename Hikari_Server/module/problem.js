@@ -15,7 +15,7 @@ function stringToBase64(str){
  * @returns :该组数据的输入输出
  */
 
-function get_problem_data(pid, grp_id, callback) {
+function get_problem_data(socketId, pid, grp_id, callback) {
   var con = mysql.createConnection({
     host: ojcfg.host,
     user: ojcfg.user,
@@ -34,7 +34,7 @@ function get_problem_data(pid, grp_id, callback) {
     //console.log("Len: " + len);
     if (result.length == 0){
         callback(-1);
-    }else if (result[0]["hidden"] != 0){
+    }else if (result[0]["hidden"] != 0 && ojcfg.connectionList[socketId].grade < 5){
         callback(-1);
     }else{
         
@@ -42,7 +42,10 @@ function get_problem_data(pid, grp_id, callback) {
         con.end();
         if (grp_id == -1) {
             a_size = JSON.parse(request('GET',ojcfg.choose_data_server() + "/?action=size&pid=" + pid).getBody());
-          callback(a_size.size);
+            if (a_size.status == "503")
+                callback(-1);
+            else
+                callback(a_size.size);
         } else {
             a_url = JSON.parse(request('GET', ojcfg.choose_data_server() + "/?action=allocate&pid=" + pid + "&grp=" + grp_id).getBody());
           callback(

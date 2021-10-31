@@ -22,10 +22,9 @@ const record = require("./module/record");
 const sensorship = require("./module/sensorship");
 
 var request = require("sync-request");
+var md5 = require("md5-node");
 
 //socket连接列表
-var connectionList = ojcfg.connectionList;
-var result_list = ojcfg.result_list;
 
 /*
  * socket主进程
@@ -42,31 +41,33 @@ io.sockets.on("connection", function (socket) {
   //客户端连接时，保存socketId和用户名
   var socketId = socket.id;
   console.log(socketId + " Connection Established.");
-  connectionList[socketId] = {
+  ojcfg.connectionList[socketId] = {
     socket: socket,
     token: socketId, //十六位Token
   };
 
   //用户登录事件
   socket.on("login", function (data) {
+      ojcfg.connectionList[socketId].info = data.info;
     login.validate_user(
       socketId,
       data.username,
       data.password,
-      function (uid, uname, passwd) {
+      function (uid, uname, passwd, grade) {
         ojcfg.userLoggedin += 1;
-        connectionList[socketId].loggedin = true;
-        connectionList[socketId].uid = uid;
-        connectionList[socketId].username = uname;
-        connectionList[socketId].password = passwd;
-        console.log(data.username + " logged in.");
+        ojcfg.connectionList[socketId].loggedin = true;
+        ojcfg.connectionList[socketId].uid = uid;
+        ojcfg.connectionList[socketId].username = uname;
+        ojcfg.connectionList[socketId].password = passwd;
+        ojcfg.connectionList[socketId].grade = grade;
+        console.log(data.username + " of Grade " + grade + " logged in.");
       }
     );
   });
 
   //用户提交评测
   socket.on("submit", function (data) {
-    problem.get_problem_data(data.pid, -1, function (tot_grp) {
+    problem.get_problem_data(socketId, data.pid, -1, function (tot_grp) {
       if (tot_grp == -1) {
         io.emit("judge_all_done", {
           uid: data.uid,
@@ -83,28 +84,24 @@ io.sockets.on("connection", function (socket) {
     data.rid = cur_rid;
 
     //初始化评测记录
-    result_list[cur_rid] = new Object();
-    result_list[cur_rid].all_done = false;
-    result_list[data.rid].cnt = 0;
-    result_list[data.rid].pts = 0;
-    result_list[data.rid].code = data.code;
-    //result_list[data.rid].pid = data.pid;
-    result_list[cur_rid].grp_rec = {};
+    ojcfg.result_list[cur_rid] = new Object();
+    ojcfg.result_list[cur_rid].all_done = false;
+    ojcfg.result_list[data.rid].cnt = 0;
+    ojcfg.result_list[data.rid].pts = 0;
+    ojcfg.result_list[data.rid].code = data.code;
+    //ojcfg.result_list[data.rid].pid = data.pid;
+    ojcfg.result_list[cur_rid].grp_rec = {};
 
     Queue.push(data, function (uid, pid, code) {
-      if (connectionList[socketId].uid == uid) {
+      if (ojcfg.connectionList[socketId].uid == uid) {
         ojcfg.cntInQueue += 1;
-        problem.get_problem_data(pid, -1, function (tot_grp) {
+        problem.get_problem_data(socketId, pid, -1, function (tot_grp) {
           for (i = 1; i <= tot_grp; i++) {
-            problem.get_problem_data(pid, i, function (c_data, grp_id) {
+            problem.get_problem_data(socketId, pid, i, function (c_data, grp_id) {
               problem.get_problem_limits(pid, function (lim_data) {
-                record.generate_validate_code(function (_valid) {
-                  result_list[cur_rid].grp_rec[grp_id] = new Object();
-                  result_list[cur_rid].grp_rec[grp_id].exist = false;
-                  result_list[cur_rid].grp_rec[grp_id].valid_code = _valid.code;
-                  result_list[cur_rid].grp_rec[grp_id].valid_in = _valid.input;
-                  result_list[cur_rid].grp_rec[grp_id].valid_out =
-                    _valid.output;
+                  ojcfg.result_list[cur_rid].grp_rec[grp_id] = new Object();
+                  ojcfg.result_list[cur_rid].grp_rec[grp_id].exist = false;
+                  ojcfg.result_list[cur_rid].grp_rec[grp_id].db_out = md5(request('GET',c_data.output).getBody().toString().replace(/\s*/g, "").replace(/[\r\n]/g, "").replace(/[\n]/g, ""));
                   console.log("Pulled Test " + grp_id + " of RID " + cur_rid);
                   if (io.engine.clientsCount <= 5) {
                     io.emit("judge_pull", {
@@ -114,11 +111,8 @@ io.sockets.on("connection", function (socket) {
                       grp: grp_id,
                       code: code,
                       input: c_data.input,
-                      output: c_data.output,
                       time_limit: lim_data.time_limit,
                       mem_limit: lim_data.mem_limit,
-                      valid_code: _valid.code,
-                      valid_in: _valid.input,
                     });
                   } else {
                     socket.broadcast.emit("judge_pull", {
@@ -128,14 +122,10 @@ io.sockets.on("connection", function (socket) {
                       grp: grp_id,
                       code: code,
                       input: c_data.input,
-                      output: c_data.output,
                       time_limit: lim_data.time_limit,
                       mem_limit: lim_data.mem_limit,
-                      valid_code: _valid.code,
-                      valid_in: _valid.input,
                     });
                   }
-                });
               });
             });
           }
@@ -145,109 +135,69 @@ io.sockets.on("connection", function (socket) {
   });
 
   socket.on("judge_push_result", function (data) {
-    var db_Valid_Out = request(
-      "GET",
-      result_list[data.rid].grp_rec[data.grp].valid_out
-    ).getBody();
-    if (!result_list[data.rid].all_done /*&& db_Valid_Out == data.valid_out*/) {
-      if (!result_list[data.rid].grp_rec[data.grp].exist) {
+    if (!ojcfg.result_list[data.rid].all_done) {
+      if (!ojcfg.result_list[data.rid].grp_rec[data.grp].exist) {
+        var is_ac = (data.out == ojcfg.result_list[data.rid].grp_rec[data.grp].db_out);
         console.log("Result Get! RID:" + data.rid + ",data.grp:" + data.grp);
-        result_list[data.rid].cnt += 1;
-        result_list[data.rid].grp_rec[data.grp].exist = true;
-        result_list[data.rid].grp_rec[data.grp].status = data.status;
-        result_list[data.rid].grp_rec[data.grp].pts = data.pts;
-        result_list[data.rid].grp_rec[data.grp].out = data.out;
-        result_list[data.rid].pts += data.pts;
+        ojcfg.result_list[data.rid].cnt += 1;
+        ojcfg.result_list[data.rid].grp_rec[data.grp].exist = true;
+        ojcfg.result_list[data.rid].grp_rec[data.grp].status = (data.status!="OK"?data.status:(is_ac?"AC":"WA"));
+        ojcfg.result_list[data.rid].grp_rec[data.grp].pts = (is_ac?1:0);
+        ojcfg.result_list[data.rid].grp_rec[data.grp].out = data.out;
+        ojcfg.result_list[data.rid].pts += (is_ac?1:0);
 
-        problem.get_problem_data(data.pid, -1, function (datacnt) {
+        problem.get_problem_data(socketId, data.pid, -1, function (datacnt) {
           io.emit("judge_pts_done", {
             rid: data.rid,
             uid: data.uid,
             pid: data.pid,
             grp: data.grp,
-            pts: data.pts,
-            cnt_done: result_list[data.rid].cnt,
+            pts: (is_ac?1:0),
+            cnt_done: ojcfg.result_list[data.rid].cnt,
             datacnt: datacnt,
-            stat: data.status,
+            stat: ojcfg.result_list[data.rid].grp_rec[data.grp].status,
           });
-          if (result_list[data.rid].cnt == datacnt) {
+          if (ojcfg.result_list[data.rid].cnt == datacnt && !ojcfg.result_list[data.rid].all_done) {
             console.log("Judge All Done!" + data.rid);
             ojcfg.cntInQueue -= 1;
-            result_list[data.rid].stat = "AC";
+            ojcfg.result_list[data.rid].stat = "AC";
             for (i = 1; i <= datacnt; i += 1) {
-              if (result_list[data.rid].grp_rec[i].status != "AC") {
-                result_list[data.rid].stat =
-                  result_list[data.rid].grp_rec[i].status;
+              if (ojcfg.result_list[data.rid].grp_rec[i].status != "AC") {
+                ojcfg.result_list[data.rid].stat =
+                  ojcfg.result_list[data.rid].grp_rec[i].status;
                 break;
               }
             }
 
             for (i = 1; i <= datacnt; i += 1) {
-              delete result_list[data.rid].grp_rec[i].exist;
-              delete result_list[data.rid].grp_rec[i].valid_code;
-              delete result_list[data.rid].grp_rec[i].valid_in;
-              delete result_list[data.rid].grp_rec[i].valid_out;
+              delete ojcfg.result_list[data.rid].grp_rec[i].exist;
             }
 
             record.save_result_to_db(
               data.rid,
               data.pid,
               data.uid,
-              result_list[data.rid].code,
-              result_list[data.rid].stat,
-              result_list[data.rid].pts,
-              JSON.stringify(result_list[data.rid].grp_rec)
+              ojcfg.result_list[data.rid].code,
+              ojcfg.result_list[data.rid].stat,
+              ojcfg.result_list[data.rid].pts,
+              JSON.stringify(ojcfg.result_list[data.rid].grp_rec)
             );
-            if (result_list[data.rid].stat == "AC") {
-              problem.get_problem_data(data.pid, -1, function (cnt_grp) {
-                var grp_id = Math.floor(Math.random() * cnt_grp) + 1,
-                  attempt = 0,
-                  OK = false;
 
-                while (!OK && attempt <= 5) {
-                  attempt += 1;
-                  var tmp_data = data;
-                  problem.get_problem_data(
-                    data.pid,
-                    grp_id,
-                    function (data, grp_cnt) {
-                      if (!OK) {
-                        if (
-                          data.input.length <= 1000 &&
-                          data.output.length <= 1000
-                        ) {
-                          record.save_result_to_valid(
-                            tmp_data.rid,
-                            tmp_data.code,
-                            tmp_data.pid,
-                            grp_id
-                          );
-                          OK = true;
-                        } else {
-                          grp_id = Math.floor(Math.random() * cnt_grp) + 1;
-                        }
-                      }
-                    }
-                  );
-                }
-              });
-            }
-
-            result_list[data.rid].all_done = true;
+            ojcfg.result_list[data.rid].all_done = true;
             io.emit("judge_all_done", {
               rid: data.rid,
               uid: data.uid,
               pid: data.pid,
-              pts: result_list[data.rid].pts,
+              pts: ojcfg.result_list[data.rid].pts,
               datacnt: datacnt,
-              stat: result_list[data.rid].stat,
+              stat: ojcfg.result_list[data.rid].stat,
             });
           } else {
             console.log(
               "Judge " +
                 data.rid +
                 ": " +
-                result_list[data.rid].cnt +
+                ojcfg.result_list[data.rid].cnt +
                 " Out of " +
                 datacnt
             );
@@ -255,19 +205,19 @@ io.sockets.on("connection", function (socket) {
         });
       }
     } else {
-      console.log(result_list[data.rid].grp_rec[data.grp]);
+      console.log(ojcfg.result_list[data.rid].grp_rec[data.grp]);
       console.log("User " + data.uid + " Seems to be a Scam...");
     }
   });
 
   //用户离开
   socket.on("disconnect", function () {
-    if (connectionList[socketId].loggedin == true) {
+    if (ojcfg.connectionList[socketId].loggedin == true) {
       ojcfg.userLoggedin -= 1;
-      console.log(connectionList[socketId].username + " logged out.");
+      console.log(ojcfg.connectionList[socketId].username + " logged out.");
     }
 
-    delete connectionList[socketId];
+    delete ojcfg.connectionList[socketId];
   });
 });
 

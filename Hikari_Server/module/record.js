@@ -69,61 +69,6 @@ function save_result_to_db(rid, pid, uid, code, stat, pts, detail) {
   );
 }
 
-/**
- * 将评测记录保存至Valid库
- * @param {integer} rid : 待保存的rid
- */
-function save_result_to_valid(rid, code, pid, grp) {
-  problem.get_problem_data(pid, grp, function (data, grp_id) {
-    var con = mysql.createConnection({
-      host: ojcfg.host,
-      user: ojcfg.user,
-      password: ojcfg.password,
-      database: ojcfg.database,
-    });
-    con.connect();
-    var sql =
-      "INSERT INTO `reliable_judge` (rid,code,input,output) VALUES (?,?,?,?)";
-
-    con.query(sql, [rid, code, data.input, data.output], function (err) {
-      if (err) {
-        console.error(err);
-      }
-      con.end();
-    });
-  });
-}
-
-/**
- * 生成验证代码和数据
- * @param {function} callback : 回调函数
- */
-function generate_validate_code(callback) {
-  var con = mysql.createConnection({
-    host: ojcfg.host,
-    user: ojcfg.user,
-    password: ojcfg.password,
-    database: ojcfg.database,
-  });
-  con.connect();
-  var sql =
-    "SELECT * FROM  reliable_judge WHERE id >= ((SELECT MAX(id) FROM reliable_judge)-(SELECT" +
-    "      MIN(id) FROM reliable_judge)) * RAND() + (SELECT MIN(id) FROM reliable_judge) LIMIT 1";
-
-  con.query(sql, function (err, result) {
-    if (err) {
-      return data;
-    }
-    con.end();
-
-    callback({
-      code: result[0]["code"],
-      input: result[0]["input"],
-      output: result[0]["output"],
-    });
-  });
-}
-
 module.exports = {
-    save_result_to_db,save_result_to_valid,generate_validate_code
+    save_result_to_db
 }

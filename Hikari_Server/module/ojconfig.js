@@ -1,7 +1,7 @@
 var host = 'localhost';
-var user = 'Hikari';
+var user = 'hikari';
 var password = '123456';
-var database = 'Hikari';
+var database = 'hikari';
 
 /* 数据表user
 CREATE TABLE `user` (
@@ -76,6 +76,10 @@ CREATE TABLE `hikari`.`statistics` (
 PRIMARY KEY (`id`)) ENGINE = InnoDB;
 */
 
+//socket连接列表
+var connectionList = {};
+var result_list = {};
+
 //队列中的评测数
 var cntInQueue = 0;
 //登陆的用户数
@@ -83,7 +87,20 @@ var userLoggedin = 0;
 
 const server = require("http").createServer(function (request, response) {
   response.writeHead(200, { "Content-Type": "text/json" });
-  response.end('{"status":"200","online":"' + io.engine.clientsCount + '","inqueue":"0"}\n');
+  var comma = false;
+  if (request.url.startsWith('/judgers')){
+    resp = '[';
+    for (var index in connectionList){
+        if (typeof(connectionList[index].info) != "undefined"){
+            if (!comma) comma = true; else resp += ',';
+            resp += connectionList[index].info;
+        }
+    }
+    resp += ']';
+    response.end(resp);
+  }else{
+    response.end('{"status":"200","online":"' + io.engine.clientsCount + '","inqueue":"0"}\n');
+  }
 });
 
 const io = require("socket.io")(server);
@@ -99,11 +116,6 @@ function choose_data_server(){
         }
     }
 }
-choose_data_server();
-
-//socket连接列表
-var connectionList = {};
-var result_list = {};
 
 module.exports = {
   host,user,password,database,

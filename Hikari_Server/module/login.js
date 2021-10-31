@@ -79,7 +79,7 @@ function validate_userdata_mysql(uname, passwd, callback) {
         uname: uname,
         token: token,
       });
-      callback(data["result"]["id"], uname, passwd);
+      callback(data["result"]["id"], uname, passwd,data["result"]["grade"]);
     } else {
       io.emit("LOGIN_FAILED", {
         uid: -1,
