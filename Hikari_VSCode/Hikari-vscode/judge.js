@@ -89,7 +89,7 @@ var do_compile_out = function (
         if (error) {
           console.error(error);
           console.log(_stdout, _stderr);
-          callback("CE",_stderr);
+          callback("CE","Compile Error.", _stderr);
         } else {
           fs.writeFileSync(working_directory + "\\data.in", stdin);
           exec(judge_command, run_ctrl, function (error, _stdout, _stderr) {
@@ -99,9 +99,9 @@ var do_compile_out = function (
               );
               //console.log("Timeout!");
               if (ret.indexOf("SUCCESS") > 0) {
-                callback("TLE", _stdout);
+                callback("TLE", _stdout, _stderr);
               } else {
-                callback("RE", _stdout);
+                callback("RE", _stdout, _stderr);
               }
 
               //console.error(error);
@@ -113,7 +113,7 @@ var do_compile_out = function (
                 .replace(/\s*/g, "")
                 .replace(/[\r\n]/g, "")
                 .replace(/[\n]/g, "");
-              callback("OK", stdout);
+              callback("OK", stdout, _stderr);
             }
           });
         }

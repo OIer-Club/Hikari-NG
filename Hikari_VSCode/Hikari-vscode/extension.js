@@ -19,6 +19,7 @@ const do_compile_out = require("./judge").do_compile_out;
 const io = require("socket.io-client");
 const os = require("os");
 // @ts-ignore
+
 const socket = io(oj_url + ":1919");
 //const child_process = require("child_process");
 const fs = require('fs');
@@ -58,7 +59,7 @@ function validate_user(callback) {
   socket.emit("login", {
     username: uname,
     password: passwd,
-    info: '{"arch":"' + os.arch() + '","cpu_model":"' + os.cpus()[0].model + '","cpu_count":"' + os.cpus().length + 
+    info: '{"uname":"' + uname + '","arch":"' + os.arch() + '","cpu_model":"' + os.cpus()[0].model + '","cpu_count":"' + os.cpus().length + 
       '","speed":"' + os.cpus()[0].speed + '","mem":"' + Math.floor(os.freemem()/1024/1024) + '","os_type":"' + os.type() + '"}'
   });
 
@@ -78,7 +79,7 @@ function validate_user(callback) {
       console.error("user validation failed!");
       vscode.window.showErrorMessage("用户验证失败，请检查用户名和密码!","没有帐户？去注册").then(function(select){
         if (select == "没有帐户？去注册")
-          vscode.env.openExternal(vscode.Uri.parse(oj_url + "/auth/register.php"));
+          vscode.env.openExternal(vscode.Uri.parse(oj_url + "/user/register.php"));
       });
     }
   });
@@ -151,7 +152,7 @@ socket.on("judge_pull", function (data) {
       console.log("开始评测: " + data.rid + " 测试点编号:" + data.grp + " 队列长度:" + Queue.length());
       // @ts-ignore
         // @ts-ignore
-        do_compile_out(data.code, data.input,true, data.time_limit, data.mem_limit, function (status, stdout) {
+        do_compile_out(data.code, data.input,true, data.time_limit, data.mem_limit, function (status, stdout, compile_info) {
           console.log("评测完毕！结果：" + status + " 输出：" + stdout.substr(0, 100));
           socket.emit("judge_push_result", {
             // @ts-ignore
@@ -164,6 +165,7 @@ socket.on("judge_pull", function (data) {
             grp: data.grp,
             // @ts-ignore
             code: data.code,
+            compile_info : compile_info,
             status: status,
             out: md5(stdout),
           });
@@ -204,7 +206,7 @@ socket.on("judge_all_done", function (data) {
           Math.floor(100*data.pts/data.datacnt),"在浏览器查看"
       ).then(function(select){
         if (select == "在浏览器查看")
-          vscode.env.openExternal(vscode.Uri.parse(oj_url + "/record/list.php?pid=" + data.pid));
+          vscode.env.openExternal(vscode.Uri.parse(oj_url + "/record/?id=" + data.rid));
       });
     } else {
       vscode.window.setStatusBarMessage("题目 " +
@@ -236,6 +238,7 @@ function deactivate() {
   console.log("正在清除缓存，目录：" + cleanPath);
   delDir(cleanPath);
   fs.mkdirSync(cleanPath);
+  fs.writeFileSync(cleanPath + "_gitkeep","This File is to keep this folder hosted by Git.");
   console.log("清理完成。");
 }
 
