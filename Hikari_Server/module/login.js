@@ -52,13 +52,12 @@ function validate_userdata_mysql(uname, passwd, callback) {
           data["result"] = result[i];
           break;
         } else {
-          console.log(result[i]["password"] + ',' + passwd);
+          console.log("[login.js] Password Missmatch! (" + result[i]["password"] + ',' + passwd + ")");
           data = JSON.parse('{"code":"error","result":"密码错误"}');
         }
       }
     }
 
-    con.end();
     callback(data);
   });
 }
@@ -86,7 +85,7 @@ function validate_userdata_mysql(uname, passwd, callback) {
         uname: uname,
         token: token,
       });
-      console.log("valid Failed.");
+      console.log("[login.js] valid Failed.");
     }
   });
 }

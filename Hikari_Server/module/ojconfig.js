@@ -1,7 +1,7 @@
 var host = 'localhost';
-var user = 'hikari';
+var user = 'Hikari';
 var password = '123456';
-var database = 'hikari';
+var database = 'Hikari';
 
 /* 数据表user
 CREATE TABLE `user` (

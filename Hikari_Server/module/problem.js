@@ -4,7 +4,7 @@ var mysql = require("mysql");
 var request = require('sync-request');
 
 function stringToBase64(str){
-    var base64Str = new Buffer(str).toString('base64');
+    var base64Str = new Buffer.from(str).toString('base64');
     return base64Str;
 }
 
