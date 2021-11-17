@@ -80,6 +80,7 @@ function tackle_pts_done(data){
       ojcfg.result_list[data.rid].cnt += 1;
       ojcfg.result_list[data.rid].grp_rec[data.grp].exist = true;
       ojcfg.result_list[data.rid].grp_rec[data.grp].compile_info = data.compile_info;
+      ojcfg.result_list[data.rid].grp_rec[data.grp].time_used = data.time_used;
       ojcfg.result_list[data.rid].grp_rec[data.grp].status = (data.status!="OK"?data.status:(is_ac?"AC":"WA"));
       ojcfg.result_list[data.rid].grp_rec[data.grp].pts = (is_ac?1:0);
       ojcfg.result_list[data.rid].grp_rec[data.grp].out = data.out;

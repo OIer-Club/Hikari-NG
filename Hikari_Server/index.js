@@ -117,7 +117,7 @@ io.sockets.on("connection", function (socket) {
                   ojcfg.result_list[cur_rid].grp_rec[grp_id].db_out = md5(request('GET',c_data.output).getBody().toString().replace(/\s*/g, "").replace(/[\r\n]/g, "").replace(/[\n]/g, ""));//答案文件的MD5
                   console.log("[index.js] Pulled Test " + grp_id + " of RID " + cur_rid);
                   if (io.engine.clientsCount <= 5) {
-                    io.emit("judge_pull", {//向全部人发出评测申请，以防评测效率过低
+                    socket.emit("judge_pull", {//(临时性措施以避免BUG，待修改) 应向全部人发出评测申请，以防评测效率过低
                       rid: cur_rid,
                       uid: uid,
                       pid: pid,
@@ -164,10 +164,10 @@ io.sockets.on("connection", function (socket) {
 
 /** 
     重发评测失败的数据点 （有锅）
-*/
+
 function grp_overtime_re_emit(){
     for (var it_rid in ojcfg.result_list){
-        if (Date.now() - ojcfg.result_list[it_rid].timestamp > 1000*60*2 /* 2 Minutes */){ //超时
+        if (Date.now() - ojcfg.result_list[it_rid].timestamp > 1000*60*5){ //超时
             if (!ojcfg.result_list[it_rid].all_done){ //未完成
                 for (var i = 1;i<=ojcfg.result_list[it_rid].tot_grp;i+=1){
                     if (i <= ojcfg.result_list[it_rid].tot_grp && ojcfg.result_list[it_rid].grp_rec.hasOwnProperty(i) && !ojcfg.result_list[it_rid].grp_rec[i].exist){ //未完成
@@ -189,7 +189,8 @@ function grp_overtime_re_emit(){
         }
     }
 }
-setInterval(grp_overtime_re_emit,1000*60*1); //1分钟轮询一次
+setInterval(grp_overtime_re_emit,1000*60*2); //2分钟轮询一次
+*/
 
 server.listen(1919);
 console.log("[index.js] Server listening on port 1919.");
