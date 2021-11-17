@@ -3,29 +3,28 @@
 //OJ配置，请自行修改
 const vscode = require("vscode");
 var oj_url = vscode.workspace.getConfiguration().get("hikari-vscode.oj_url"); // OJ的网址
-var uname = vscode.workspace.getConfiguration().get("hikari-vscode.uname");
-var passwd = vscode.workspace.getConfiguration().get("hikari-vscode.passwd");
+var uname = vscode.workspace.getConfiguration().get("hikari-vscode.uname"); //用户名
+var passwd = vscode.workspace.getConfiguration().get("hikari-vscode.passwd"); //密码
 
 console.log("OJ URL:" + oj_url);
 var uname,
   passwd,
   uid = -1;
-var pid_map = {};
-var judge_inq = {};
+var pid_map = {}; //正在评测中的题目
+var judge_inq = {};//正在编译的题目
 
-const do_judge = require("./judge").do_judge;
-const do_compile_out = require("./judge").do_compile_out;
+const do_compile_out = require("./judge").do_compile_out; //编译模块
 
 const io = require("socket.io-client");
 const os = require("os");
 // @ts-ignore
 
-const socket = io(oj_url + ":1919");
+const socket = io(oj_url + ":1919"); //与服务端通信的socket
 //const child_process = require("child_process");
 const fs = require('fs');
-const request = require("sync-request");
+const request = require("request");
 
-var Queue = require('./queue.js');
+var Queue = require('./queue.js'); //评测队列模块
 var md5 = require("md5");
 
 /**
@@ -56,7 +55,7 @@ function delDir(path){
  * @param {function} callback
  */
 function validate_user(callback) {
-  socket.emit("login", {
+  socket.emit("login", { //发送登录消息
     username: uname,
     password: passwd,
     info: '{"uname":"' + uname + '","arch":"' + os.arch() + '","cpu_model":"' + os.cpus()[0].model + '","cpu_count":"' + os.cpus().length + 
@@ -64,7 +63,7 @@ function validate_user(callback) {
   });
 
   var done_val = 0;
-  socket.once("LOGIN_SUCCESS", function (data) {
+  socket.once("LOGIN_SUCCESS", function (data) { //登录成功
     if (data.uname == uname && done_val == 0) {
       done_val = 1;
       uid = data.uid;
@@ -73,7 +72,7 @@ function validate_user(callback) {
     }
   });
 
-  socket.once("LOGIN_FAILED", function (data) {
+  socket.once("LOGIN_FAILED", function (data) { //登录失败
     if (data.uname == uname && done_val == 0) {
       done_val = 1;
       console.error("user validation failed!");
@@ -96,7 +95,7 @@ function activate(context) {
       "!"
   );
 
-  console.log("Benchmark: " + require("./judge").time_limit_per_pt);
+  console.log("Benchmark: " + require("./judge").time_limit_per_pt); //获取评测基准系数
 
   let func_submit = vscode.commands.registerCommand(
     "hikari-vscode.submit",
@@ -114,7 +113,7 @@ function activate(context) {
             if (msg) {
               if (!pid_map[msg]) {
                 pid_map[msg] = true;
-                socket.emit("submit", {
+                socket.emit("submit", { //发送提交信息
                   uid: uid,
                   pid: msg,
                   code: vscode.window.activeTextEditor.document.getText(),
@@ -137,22 +136,22 @@ function activate(context) {
 }
 
 //评测循环
-socket.on("judge_pull", function (data) {
-  if (judge_inq[data.rid + "&" + data.grp] != "InQ"){
+socket.on("judge_pull", function (data) { //拉取评测
+  if (judge_inq[data.rid + "&" + data.grp] != "InQ"){ //不在队列中
     judge_inq[data.rid + "&" + data.grp] = "InQ";
     Queue.push(data,function(data){
       //console.log("Group:" + data.grp + ",Input:" + data.input + ",Output:" + data.output);
       //console.log("VAlid:" + data.valid_code + "," + data.valid_in);
 
       // @ts-ignore
-      data.input = request('GET',data.input).getBody();
-
-      
-      // @ts-ignore
-      console.log("开始评测: " + data.rid + " 测试点编号:" + data.grp + " 队列长度:" + Queue.length());
-      // @ts-ignore
+      request(data.input,function (error, response, body){ //拉取评测数据
         // @ts-ignore
-        do_compile_out(data.code, data.input,true, data.time_limit, data.mem_limit, function (status, stdout, compile_info) {
+        data.input = body;
+        // @ts-ignore
+        console.log("开始评测: " + data.rid + " 测试点编号:" + data.grp + " 队列长度:" + Queue.length());
+        // @ts-ignore
+        // @ts-ignore
+        do_compile_out(data.code, data.input,true, data.time_limit, data.mem_limit, function (status, stdout, compile_info, time_used) {
           console.log("评测完毕！结果：" + status + " 输出：" + stdout.substr(0, 100));
           socket.emit("judge_push_result", {
             // @ts-ignore
@@ -166,15 +165,17 @@ socket.on("judge_pull", function (data) {
             // @ts-ignore
             code: data.code,
             compile_info : compile_info,
+            time_used : time_used,
             status: status,
             out: md5(stdout),
           });
         });
+      });
     });
   }
 });
 
-socket.on("judge_pts_done",function(data){
+socket.on("judge_pts_done",function(data){ //单个数据点完成
   if (data.uid == uid && pid_map[data.pid] == true && data.cnt_done != data.datacnt) {
     if (data.stat == "AC"){
       vscode.window.setStatusBarMessage("题目 " +
@@ -190,7 +191,7 @@ socket.on("judge_pts_done",function(data){
   }
 });
 
-socket.on("judge_all_done", function (data) {
+socket.on("judge_all_done", function (data) { //全部数据点完成
   console.log("ALLDONE GET:" + data.uid + "," + data.pid);
   if (data.uid == uid && pid_map[data.pid] == true) {
     if (data.stat == "AC") {
@@ -233,7 +234,7 @@ socket.on("judge_all_done", function (data) {
   }
 });
 
-function deactivate() {
+function deactivate() { //退出时清空临时目录
   var cleanPath = __dirname + "\\submissions\\";
   console.log("正在清除缓存，目录：" + cleanPath);
   delDir(cleanPath);

@@ -3,7 +3,7 @@
 	"publisher": "Hikari-Dev",
 	"displayName": "hikari-VSCode",
 	"description": "hikari client for VSCode",
-	"version": "0.2.6",
+	"version": "0.3.0",
 	"icon": "icon.png",
 	"engines": {
 		"vscode": "^1.59.0"
