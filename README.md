@@ -57,8 +57,8 @@ A：Hikari-NG是一款分布式的OJ，用户和题目信息等存放在云端�
 ### Milestone2(Currently working on)
 - [x] Time Limit Evaluation System
 - [x] Anti-Cheating System
-- [ ] Blog System
-- [ ] Ranking System
+- [x] Blog System (in Front End)
+- [x] Ranking System (in Front End)
 
 ### Milestone3(In Future)
 - [ ] Sandbox based on MIPS regulation
