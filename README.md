@@ -1,8 +1,7 @@
-![Cover](http://1.116.217.97/Hikari_Cover_small.png)
-
 # Introduction
 # 警告：当前版本为预览版，尚未部署Sandbox，请勿在生产环境下使用。建议在Windows Sandbox或Sandboxie中运行。
-## 欢迎访问我们的网站[Hikari](http://1.116.217.97/)
+## 欢迎访问我们的网站[Hikari](https://oj.hikari.owo.fit/)
+## 含有MinGW编译器的完整版代码可以从[蓝奏云](https://wwo.lanzoui.com/imK4Vwm7wxg)下载
 ### Q：什么是Hikari-NG？
 A：Hikari-NG是一款分布式的OJ，用户和题目信息等存放在云端，而评测等则在用户本地进行。
 ![](https://i.loli.net/2021/08/29/kIu1i37tbSsFL5Y.png)
@@ -32,17 +31,8 @@ A：Hikari-NG是一款分布式的OJ，用户和题目信息等存放在云端�
 感谢 @[swift-zym](https://github.com/swift-zym) 和 @[officeyutong](https://github.com/officeyutong) 提出的宝贵意见！
 
 # Installation
-
-### 方法1：
-
 1. 安装[VSCode](https://code.visualstudio.com/)
 2. 在VSCode插件市场搜索hikari-VSCode并安装
-
-### 方法2：
-
-1. 安装[VSCode](https://code.visualstudio.com/)
-2. 下载[插件安装包](https://wwr.lanzoui.com/iHxHVtmm8bc)
-3. VSCode->扩展->从VSIX安装![sample](https://i.loli.net/2021/09/03/pyPRHkbnGs38KFQ.png)
 
 
 
